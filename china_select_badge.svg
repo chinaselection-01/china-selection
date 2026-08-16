@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 470" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <rect width="680" height="470" fill="#ffffff"/>
+  <text x="340" y="42" text-anchor="middle" font-size="19" font-weight="800" fill="#14151a">China Select · 入选标识（替换原 Award 奖章）</text>
+
+  <g>
+    <circle cx="340" cy="245" r="150" fill="#C8102E"/>
+    <circle cx="340" cy="245" r="140" fill="#ffffff"/>
+    <circle cx="340" cy="245" r="120" fill="#f4f5f7"/>
+
+    <defs>
+      <path id="topArc" d="M 214 245 A 126 126 0 0 0 466 245" />
+      <path id="botArc" d="M 466 245 A 126 126 0 0 1 214 245" />
+    </defs>
+    <text fill="#C8102E" font-size="22" font-weight="800" letter-spacing="3">
+      <textPath href="#topArc" startOffset="50%" text-anchor="middle">CHINA SELECT</textPath>
+    </text>
+    <text fill="#C8102E" font-size="15" font-weight="700" letter-spacing="2">
+      <textPath href="#botArc" startOffset="50%" text-anchor="middle">· EST. 2016 ·</textPath>
+    </text>
+
+    <!-- earth + China -->
+    <circle cx="340" cy="218" r="52" fill="#dfe9f2"/>
+    <ellipse cx="340" cy="218" rx="52" ry="18" fill="none" stroke="#b9c9da" stroke-width="1.5"/>
+    <ellipse cx="340" cy="218" rx="20" ry="52" fill="none" stroke="#b9c9da" stroke-width="1.5"/>
+    <circle cx="366" cy="208" r="7" fill="#C8102E"/>
+
+    <text x="340" y="305" text-anchor="middle" font-size="26" font-weight="800" fill="#14151a">SELECTED</text>
+    <text x="340" y="327" text-anchor="middle" font-size="12" font-weight="600" fill="#5b6170" letter-spacing="2">EST. 2016 · 2026 EDITION</text>
+  </g>
+
+  <text x="340" y="442" text-anchor="middle" font-size="12.5" fill="#5b6170">域名 2016 于 861.cn 注册、2022 转 GoDaddy — EST. 2016 为真实持有史，可用。仍去奖项等级、去 2026–2040。</text>
+</svg>
