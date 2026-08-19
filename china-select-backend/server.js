@@ -518,6 +518,52 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res, 200, { ok: true, id: i.id, routedTo });
       }
 
+      // 公开：买家搜索供应商产品（无需登录）。支持 ?q=&category=&market= 过滤
+      if (path === '/api/public/products' && method === 'GET') {
+        const u = new URL(req.url, 'http://localhost');
+        const q = (u.searchParams.get('q') || '').toLowerCase().trim();
+        const cat = (u.searchParams.get('category') || '').toLowerCase().trim();
+        const market = (u.searchParams.get('market') || '').toLowerCase().trim();
+        const list = db.products.map(p => {
+          const v = db.users.find(x => x.id === p.ownerId);
+          return {
+            id: p.id, name: p.name, category: p.category || '', model: p.model || '',
+            priceRange: p.priceRange || '', moq: p.moq, markets: p.markets || '',
+            certs: p.certs || '', images: p.images || '', description: p.description || '',
+            vendor: v ? v.username : '', vendorCompany: v ? v.company : '',
+            hasStripe: !!(v && v.stripeAccountId)
+          };
+        }).filter(p => {
+          if (cat && (p.category || '').toLowerCase() !== cat) return false;
+          if (market && !((p.markets || '').toLowerCase().includes(market))) return false;
+          if (q) {
+            const hay = (p.name + ' ' + p.category + ' ' + p.description + ' ' + p.markets + ' ' + p.model + ' ' + p.vendorCompany).toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+        return sendJSON(res, 200, { count: list.length, products: list });
+      }
+
+      // 公开：买家免登录下样品单（款项直达对应 vendor 的 Stripe 子账号，平台抽佣）
+      if (path === '/api/public/order-sample' && method === 'POST') {
+        const b = await readBody(req);
+        if (!b.vendor) return sendJSON(res, 400, { error: 'vendor required' });
+        if (!b.buyerEmail) return sendJSON(res, 400, { error: 'buyerEmail required' });
+        const amount = Number(b.amount);
+        if (!amount || amount <= 0) return sendJSON(res, 400, { error: 'valid amount required' });
+        const v = db.users.find(x => x.username === String(b.vendor).trim());
+        if (!v) return sendJSON(res, 404, { error: 'vendor not found' });
+        let ref = b.productRef || 'Sample order';
+        if (b.productId) { const pr = db.products.find(x => x.id === b.productId && x.ownerId === v.id); if (pr) ref = pr.name; }
+        const o = addOrder(v.id, { type: 'sample', productRef: ref, buyerName: b.buyerName || '', buyerEmail: b.buyerEmail, qty: Number(b.qty) || 1, amount, currency: (b.currency || 'USD').toUpperCase() });
+        try {
+          const c = await createSampleCheckout(o, v);
+          o.stripeCheckoutUrl = c.checkoutUrl; o.stripeSessionId = c.sessionId; o.status = 'awaiting_payment'; o.updatedAt = new Date().toISOString(); saveDB();
+          return sendJSON(res, 200, { ok: true, orderId: o.id, checkoutUrl: c.checkoutUrl, mock: c.mock });
+        } catch (e) { return sendJSON(res, 400, { error: e.message }); }
+      }
+
       if (path === '/api/register' && method === 'POST') {
         const b = await readBody(req);
         if (!b.username || !b.password || !b.company) return sendJSON(res, 400, { error: 'company, username, password required' });

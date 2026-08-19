@@ -51,8 +51,12 @@ node server.js          # 默认 http://localhost:3000 ，可用 PORT 环境变�
 | PATCH | `/api/orders/:id` | `{status?, escrowRef?, notes?}` |
 | DELETE | `/api/orders/:id` | 删除订单 |
 | POST | `/api/stripe/webhook` | Stripe Webhook（无需登录，验签后把订单置 paid） |
+| GET  | `/api/public/products` | **买家公开搜索**：跨所有 vendor 的产品，支持 `?q=&category=&market=`。返回含 `vendor` / `vendorCompany` / `hasStripe`。无需登录。 |
+| POST | `/api/public/inquiry` | **买家免登录询盘**：`{vendor, name?, email, type?, message}`。按 vendor 路由进对应商家账号；未知 vendor 落入平台收件箱。 |
+| POST | `/api/public/order-sample` | **买家免登录下样品单**：`{vendor, productId?, buyerName?, buyerEmail, qty?, amount, currency?}`。创建样品单并生成 Stripe Checkout（款项直达该 vendor 子账号）。无 key 时返回 mock 链接。 |
 
 页面：`/login`（登录+注册）、`/dashboard`（后台：产品 / 询盘 / 设置 / 订单）。
+买家端搜索页：`../directory.html`（静态页，挂在 A 站域名下；通过 `?backend=` 指向后端公网地址，或改文件内 `BACKEND` 常量）。
 
 ## 红线（务必遵守，见架构文档 §3.2 / §六）
 1. **链接导入只接受「自有内容」或「已授权品牌方素材」**。无授权抓取亚马逊 / 竞品图文 = 版权 + 商标侵权，欧美尤严。导入前由导入者自行确认授权。
@@ -76,4 +80,5 @@ node server.js          # 默认 http://localhost:3000 ，可用 PORT 环境变�
 - 域名：可在 `china-selection.com` 下用子路径（如 `/network`）反代，或独立子域。`STRIPE_WEBHOOK_SECRET` 对应 Stripe 后台配的 Webhook 地址：`https://<你的backend>/api/stripe/webhook`。
 
 ## 后续迭代建议
-- 真实数据库替换 JSON；多图上传（现仅支持图片 URL）；AI 改写接入 LLM；询盘与 A 站表单打通（A 站现用 mailto，需换成提交到本后端）。
+- 真实数据库替换 JSON；多图上传（现仅支持图片 URL）；AI 改写接入 LLM。
+- A 站留资表单已对接本后端（免登录询盘），搜索页 `directory.html` 已支持买家搜索 / 询盘 / 样品下单。

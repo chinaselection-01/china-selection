@@ -1,40 +1,69 @@
 {
   "users": [
     {
-      "id": "ua46a9ec1893c",
+      "id": "u4b95396c0d2c",
       "company": "Demo Exporter 1",
       "username": "demo1",
-      "salt": "5c55b3e80b997935acb73324b042d98c",
-      "hash": "03f0ca05666d8da458a7a6fb96646a806fd49e5ed2674f362f2dfec163b9d6af34357097d70d77e2e246928e4078dbc15aab242c3fccfe464f2c0497e570f431",
-      "stripeAccountId": "",
-      "createdAt": "2026-08-19T23:48:49.618Z"
+      "salt": "09c0f3217b56a1b0c89a435dfb6b08b1",
+      "hash": "412f4ab62b9f8b2570d49255106c35492a2e057ec7cc7b5f00787eca8dbe0aeacae9c439d6717fb7783c1eb3076051516d713a0fb89e2a01cbf7aac510a00fdd",
+      "stripeAccountId": "acct_vendor_demo",
+      "createdAt": "2026-08-19T23:57:13.044Z"
     }
   ],
   "sessions": {
-    "d9c9e474704a65f801d26a51a92a64f8d91962a78103e19863e8e055a5f6a843": "ua46a9ec1893c"
+    "000c18390a5eabf9c1b8ef1c3f0204d6290ed80b1c227d719776adb497e8be00": "u4b95396c0d2c"
   },
-  "products": [],
-  "inquiries": [
+  "products": [
     {
-      "id": "i8528ee4a2425",
-      "ownerId": "ua46a9ec1893c",
-      "email": "buyer@eu.com",
-      "company": "EU Importer Ltd",
-      "message": "[Distributor] Interested in small appliances",
-      "status": "new",
-      "source": "website",
-      "createdAt": "2026-08-19T23:48:56.707Z"
-    },
-    {
-      "id": "iec959457e830",
-      "ownerId": "__platform__",
-      "email": "x@y.com",
-      "company": "",
-      "message": "[website] hi",
-      "status": "new",
-      "source": "website",
-      "createdAt": "2026-08-19T23:48:56.728Z"
+      "id": "p49896b59b8c1",
+      "ownerId": "u4b95396c0d2c",
+      "category": "Small appliances",
+      "name": "Robot Vacuum X1",
+      "model": "X1",
+      "priceRange": "$200-350",
+      "moq": 50,
+      "markets": "US,EU",
+      "certs": "CE,FCC",
+      "images": [
+        "https://x.com/a.jpg"
+      ],
+      "description": "Premium robot vacuum for homes.",
+      "source": "manual",
+      "sourceUrl": "",
+      "createdAt": "2026-08-19T23:57:22.676Z"
     }
   ],
-  "orders": []
+  "inquiries": [
+    {
+      "id": "i56ae91cd19e0",
+      "ownerId": "u4b95396c0d2c",
+      "email": "buyer@eu.com",
+      "company": "EU Importer",
+      "message": "[Buyer inquiry] Want X1",
+      "status": "new",
+      "source": "website",
+      "createdAt": "2026-08-19T23:57:22.757Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": "o65376b81a20c",
+      "ownerId": "u4b95396c0d2c",
+      "type": "sample",
+      "productRef": "Sample order",
+      "buyerName": "EU Importer",
+      "buyerEmail": "buyer@eu.com",
+      "buyerCompany": "",
+      "qty": 1,
+      "currency": "USD",
+      "amount": 299,
+      "status": "awaiting_payment",
+      "stripeSessionId": "mock_o65376b81a20c",
+      "stripeCheckoutUrl": "https://checkout.stripe.com/mock/session_o65376b81a20c",
+      "escrowRef": "",
+      "notes": "",
+      "createdAt": "2026-08-19T23:57:22.773Z",
+      "updatedAt": "2026-08-19T23:57:22.774Z"
+    }
+  ]
 }
