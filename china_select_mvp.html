@@ -50,6 +50,18 @@
   .bcard .en{font-size:13px;color:var(--muted);margin-bottom:10px}
   .bcard .tagline{font-size:14px;color:var(--ink);margin-bottom:12px}
   .bcard .meta{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+  .sponsors{padding:56px 0;border-top:2px dashed var(--red);background:var(--soft)}
+  .sponsors h2{font-size:28px;font-weight:800;text-align:center;margin-bottom:10px}
+  .sponsor-note{max-width:780px;margin:0 auto 30px;font-size:13.5px;color:var(--muted);text-align:center;background:#fff;border:1px solid var(--line);border-left:4px solid var(--red);border-radius:10px;padding:14px 18px}
+  .sponsor-note strong{color:var(--ink)}
+  .sponsor-note a{color:var(--red);font-weight:600}
+  .sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .scard{border:1px solid var(--line);border-radius:14px;padding:20px;background:#fff;position:relative}
+  .scard .sbadge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:var(--red);padding:3px 9px;border-radius:999px;margin-bottom:10px}
+  .scard h3{font-size:18px;margin-bottom:2px}
+  .scard .scat{font-size:12px;color:var(--red);font-weight:600;margin-bottom:10px}
+  .scard .sdesc{font-size:14px;color:var(--muted);margin-bottom:14px}
+  .scard .slink{font-size:13px;color:var(--red);font-weight:600}
   .cta{padding:60px 0;border-top:1px solid var(--line);background:var(--soft)}
   .cta h2{font-size:30px;font-weight:800;text-align:center;margin-bottom:8px}
   .cta .sub{text-align:center;color:var(--muted);margin-bottom:34px;font-size:15px}
@@ -63,7 +75,7 @@
   .form input,.form textarea{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin-bottom:10px;font-family:inherit}
   .form textarea{resize:vertical;min-height:80px}
   footer{padding:34px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted);text-align:center}
-  @media(max-width:820px){.grid3,.bgrid,.cta2{grid-template-columns:1fr}.hero h1{font-size:34px}.navlinks{display:none}}
+  @media(max-width:820px){.grid3,.bgrid,.cta2,.sgrid{grid-template-columns:1fr}.hero h1{font-size:34px}.navlinks{display:none}}
 </style>
 </head>
 <body>
@@ -76,6 +88,7 @@
         <a href="#why">Why us</a>
         <a href="#for-brands">For brands</a>
         <a href="#for-buyers">For buyers</a>
+        <a href="#sponsors">Sponsors</a>
         <a href="#contact">Contact</a>
       </div>
     </nav>
@@ -128,6 +141,60 @@
         <div class="tab" data-f="care">Personal care</div>
       </div>
       <div class="bgrid" id="bgrid"></div>
+    </div>
+  </section>
+
+  <section class="sponsors" id="sponsors">
+    <div class="wrap">
+      <h2>Sponsored Partners</h2>
+      <div class="sponsor-note">
+        The companies below are <strong>paid partners and affiliated exporters</strong> of China Selection. They are <strong>not</strong> part of our independent editorial selection (Issue 01). Any deal is settled through a licensed third-party escrow — <a href="#contact">funds held in escrow by Escrow.com</a> until goods are verified.
+      </div>
+      <div class="sgrid">
+        <!-- 占位卡片：把下面的公司名 / 品类 / 网站换成你真实公司，每家负责不同产品线 -->
+        <div class="scard">
+          <span class="sbadge">Sponsored · affiliated</span>
+          <h3>Partner Company 1</h3>
+          <div class="scat">Small appliances</div>
+          <p class="sdesc">一句话介绍这家公司负责的产品线（占位，待替换）。</p>
+          <a class="slink" href="#" target="_blank" rel="noopener">Visit website →</a>
+        </div>
+        <div class="scard">
+          <span class="sbadge">Sponsored · affiliated</span>
+          <h3>Partner Company 2</h3>
+          <div class="scat">Power banks / chargers</div>
+          <p class="sdesc">一句话介绍这家公司负责的产品线（占位，待替换）。</p>
+          <a class="slink" href="#" target="_blank" rel="noopener">Visit website →</a>
+        </div>
+        <div class="scard">
+          <span class="sbadge">Sponsored · affiliated</span>
+          <h3>Partner Company 3</h3>
+          <div class="scat">Drinkware / bottles</div>
+          <p class="sdesc">一句话介绍这家公司负责的产品线（占位，待替换）。</p>
+          <a class="slink" href="#" target="_blank" rel="noopener">Visit website →</a>
+        </div>
+        <div class="scard">
+          <span class="sbadge">Sponsored · affiliated</span>
+          <h3>Partner Company 4</h3>
+          <div class="scat">0-km used cars export</div>
+          <p class="sdesc">一句话介绍这家公司负责的产品线（占位，待替换）。</p>
+          <a class="slink" href="#" target="_blank" rel="noopener">Visit website →</a>
+        </div>
+        <div class="scard">
+          <span class="sbadge">Sponsored · affiliated</span>
+          <h3>Partner Company 5</h3>
+          <div class="scat">Home & kitchen</div>
+          <p class="sdesc">一句话介绍这家公司负责的产品线（占位，待替换）。</p>
+          <a class="slink" href="#" target="_blank" rel="noopener">Visit website →</a>
+        </div>
+        <div class="scard">
+          <span class="sbadge">Sponsored · affiliated</span>
+          <h3>Partner Company 6</h3>
+          <div class="scat">General trading</div>
+          <p class="sdesc">一句话介绍这家公司负责的产品线（占位，待替换）。</p>
+          <a class="slink" href="#" target="_blank" rel="noopener">Visit website →</a>
+        </div>
+      </div>
     </div>
   </section>
 
