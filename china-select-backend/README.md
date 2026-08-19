@@ -58,11 +58,22 @@ node server.js          # 默认 http://localhost:3000 ，可用 PORT 环境变�
 1. **链接导入只接受「自有内容」或「已授权品牌方素材」**。无授权抓取亚马逊 / 竞品图文 = 版权 + 商标侵权，欧美尤严。导入前由导入者自行确认授权。
 2. **本服务不碰资金池**。样品收款经 Stripe Connect 直达各 vendor 的 connected account（平台仅抽佣，不截留）；大货资金由 Escrow.com 等持牌第三方托管（见 `../china_select_trust_flow.md`）。任何文案不得写 "funds held by China Selection / we guarantee payment"。
 
-## 部署（因为 GitHub Pages 只能托管静态，后台需另行部署）
-任选能跑 Node 的平台（Render / Railway / Fly.io / CloudStudio），把本目录推上去即可，无需 `npm install`：
-- Render：新建 Web Service → 连接仓库 → Build Command 留空 / `node server.js` → Start Command `node server.js` → 加环境变量 `PORT`（Render 会注入）。
-- 数据持久化：`db.json` 在临时文件系统会被重置——生产建议换成 SQLite（`better-sqlite3`）或外部数据库，或挂载持久卷。本 MVP 用 JSON 仅为快速验证。
-- 接上域名：可在 `china-selection.com` 下用子路径（如 `/network`）反代，或独立子域。
+## 部署（GitHub Pages 只能托管静态，后台需另行部署；CloudStudio 仅支持纯静态站，跑不了 Node 服务，故用 Render）
+本后端是 Node 服务，**不能用 CloudStudio 部署**（它的 deploy 仅支持纯前端静态站）。用 Render（或 Railway）即可，零 npm 依赖：
+
+**方式 A — render.yaml 一键（推荐）**
+1. 把 `china-select-backend/` 目录推到 Git 仓库。
+2. Render 控制台 → New → Blueprint → 选该仓库 → 它会读 `render.yaml` 自动建好 Web Service。
+3. 在 Render 环境变量里填 `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `PUBLIC_BASE`（无则样品 Checkout 走 mock）；`CORS_ORIGIN` 设为 A 站域名（如 `https://china-selection.com`）。
+
+**方式 B — 手动建 Web Service**
+- New → Web Service → 连接仓库 → Build Command `echo no-build` → Start Command `node server.js` → 加环境变量（同上）。
+
+**部署后必做**
+- 把 A 站 `china_select_mvp.html` 里的 `const BACKEND = 'http://localhost:3000'` 改成你的 Render 公网 URL。
+- `CORS_ORIGIN` 设为 A 站域名，否则浏览器会拦截跨域提交。
+- 数据持久化：`db.json` 在临时文件系统会被重置——生产建议换成 SQLite（`better-sqlite3`）或外部数据库 / 挂载持久卷。本 MVP 用 JSON 仅为快速验证。
+- 域名：可在 `china-selection.com` 下用子路径（如 `/network`）反代，或独立子域。`STRIPE_WEBHOOK_SECRET` 对应 Stripe 后台配的 Webhook 地址：`https://<你的backend>/api/stripe/webhook`。
 
 ## 后续迭代建议
 - 真实数据库替换 JSON；多图上传（现仅支持图片 URL）；AI 改写接入 LLM；询盘与 A 站表单打通（A 站现用 mailto，需换成提交到本后端）。

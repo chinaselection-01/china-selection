@@ -25,6 +25,8 @@ const path = require('path');
 const { URL } = require('url');
 
 const PORT = process.env.PORT || 3000;
+const CORS_ORIGIN = process.env.CORS_ORIGIN || '*'; // 允许跨域的来源；生产填 A 站域名，如 https://china-selection.com
+const PLATFORM_INBOX = process.env.PLATFORM_INBOX || '__platform__'; // 未指定 vendor 时的通用收件箱 ownerId
 const DB_FILE = path.join(__dirname, 'db.json');
 const COOKIE = 'cs_session';
 
@@ -76,8 +78,21 @@ function parseCookies(req) {
 }
 function sendJSON(res, code, obj) {
   const body = JSON.stringify(obj);
-  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.writeHead(code, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': CORS_ORIGIN,
+    'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  });
   res.end(body);
+}
+function sendCORS(res, code) {
+  res.writeHead(code, {
+    'Access-Control-Allow-Origin': CORS_ORIGIN,
+    'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  });
+  return res.end();
 }
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -462,6 +477,9 @@ const server = http.createServer(async (req, res) => {
     if (path.startsWith('/api/')) {
       const user = userFromReq(req);
 
+      // 跨域预检
+      if (method === 'OPTIONS') return sendCORS(res, 204);
+
       // Stripe Webhook：Stripe 不带 session cookie，须在登录校验前处理
       if (path === '/api/stripe/webhook' && method === 'POST') {
         const raw = await readRaw(req);
@@ -474,6 +492,30 @@ const server = http.createServer(async (req, res) => {
           if (ord && ord.status !== 'paid') { ord.status = 'paid'; ord.updatedAt = new Date().toISOString(); saveDB(); }
         }
         return sendJSON(res, 200, { received: true });
+      }
+
+      // 公开询盘入口（A 站表单调用，免登录）：按 vendor 用户名路由到对应商家账号；无 vendor 或查不到则入平台收件箱
+      if (path === '/api/public/inquiry' && method === 'POST') {
+        const b = await readBody(req);
+        if (!b.email) return sendJSON(res, 400, { error: 'email required' });
+        let ownerId = PLATFORM_INBOX;
+        let routedTo = 'platform';
+        if (b.vendor) {
+          const v = db.users.find(x => x.username === String(b.vendor).trim());
+          if (v) { ownerId = v.id; routedTo = v.username; }
+        }
+        const i = {
+          id: 'i' + crypto.randomBytes(6).toString('hex'),
+          ownerId,
+          email: String(b.email).slice(0, 200),
+          company: String(b.company || b.name || '').slice(0, 200),
+          message: ('[' + (b.type || 'website') + '] ' + (b.message || '')).slice(0, 2000),
+          status: 'new',
+          source: 'website',
+          createdAt: new Date().toISOString()
+        };
+        db.inquiries.push(i); saveDB();
+        return sendJSON(res, 200, { ok: true, id: i.id, routedTo });
       }
 
       if (path === '/api/register' && method === 'POST') {

@@ -1,0 +1,27 @@
+# Render 一键部署配置（把 china-select-backend/ 目录推到 Git 后，在 Render 用这个文件或手动建 Web Service）
+# 部署后把 A 站 china_select_mvp.html 里的 BACKEND 常量改成这里的 URL，并把 CORS_ORIGIN 设为 A 站域名。
+services:
+  - type: web
+    name: china-select-vendor-backend
+    runtime: node
+    plan: free
+    region: oregon      # 或 singapore（离香港/大陆近）
+    branch: main
+    buildCommand: "echo no-build"
+    startCommand: "node server.js"
+    envVars:
+      - key: PORT
+        sync: false      # Render 自动注入
+      - key: CORS_ORIGIN
+        value: "https://china-selection.com"   # 改成你的 A 站域名；本地联调用 http://localhost:5500 之类
+      - key: PLATFORM_INBOX
+        value: "__platform__"
+      - key: PLATFORM_FEE_RATE
+        value: "0.05"
+      # 以下为真实收款所需，填了才能真收款；留空则样品 Checkout 走 mock
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: PUBLIC_BASE
+        sync: false      # 填你的 Render 公网 URL，用于 Stripe 回跳

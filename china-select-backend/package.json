@@ -1,0 +1,13 @@
+{
+  "name": "china-select-vendor-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "China Selection Supply Network — vendor backend (auth, products, inquiries, orders, Stripe Connect). Zero npm dependencies.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

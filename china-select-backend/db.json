@@ -1,58 +1,40 @@
 {
   "users": [
     {
-      "id": "ub0d645b54835",
+      "id": "ua46a9ec1893c",
       "company": "Demo Exporter 1",
       "username": "demo1",
-      "salt": "09586b1636f585feaafab46951e64611",
-      "hash": "0b4c1c0b66accd6fab47f3df1e61eeac006dca82521e4d2b790b8d87e771c7743e105918f4b1386f00faed9318706c2132334ac8f6d2cdef625605b937923f3e",
-      "stripeAccountId": "acct_vendor_demo",
-      "createdAt": "2026-08-19T23:44:14.538Z"
+      "salt": "5c55b3e80b997935acb73324b042d98c",
+      "hash": "03f0ca05666d8da458a7a6fb96646a806fd49e5ed2674f362f2dfec163b9d6af34357097d70d77e2e246928e4078dbc15aab242c3fccfe464f2c0497e570f431",
+      "stripeAccountId": "",
+      "createdAt": "2026-08-19T23:48:49.618Z"
     }
   ],
   "sessions": {
-    "809544c03037d490d26541eee134c279ff2e62d00e29e9e75309accf1c5ab83a": "ub0d645b54835"
+    "d9c9e474704a65f801d26a51a92a64f8d91962a78103e19863e8e055a5f6a843": "ua46a9ec1893c"
   },
   "products": [],
-  "inquiries": [],
-  "orders": [
+  "inquiries": [
     {
-      "id": "ofc5cc6ded940",
-      "ownerId": "ub0d645b54835",
-      "type": "sample",
-      "productRef": "Robot Vacuum X1",
-      "buyerName": "EU Buyer",
-      "buyerEmail": "b@eu.com",
-      "buyerCompany": "",
-      "qty": 1,
-      "currency": "USD",
-      "amount": 299,
-      "status": "paid",
-      "stripeSessionId": "mock_ofc5cc6ded940",
-      "stripeCheckoutUrl": "https://checkout.stripe.com/mock/session_ofc5cc6ded940",
-      "escrowRef": "",
-      "notes": "",
-      "createdAt": "2026-08-19T23:44:23.516Z",
-      "updatedAt": "2026-08-19T23:44:23.634Z"
+      "id": "i8528ee4a2425",
+      "ownerId": "ua46a9ec1893c",
+      "email": "buyer@eu.com",
+      "company": "EU Importer Ltd",
+      "message": "[Distributor] Interested in small appliances",
+      "status": "new",
+      "source": "website",
+      "createdAt": "2026-08-19T23:48:56.707Z"
     },
     {
-      "id": "o1177b6437856",
-      "ownerId": "ub0d645b54835",
-      "type": "bulk",
-      "productRef": "X1 Bulk 500pcs",
-      "buyerName": "",
-      "buyerEmail": "",
-      "buyerCompany": "ME Dist",
-      "qty": 500,
-      "currency": "USD",
-      "amount": 120000,
-      "status": "awaiting_payment",
-      "stripeSessionId": "",
-      "stripeCheckoutUrl": "",
-      "escrowRef": "ESC-2026-0001",
-      "notes": "",
-      "createdAt": "2026-08-19T23:44:23.555Z",
-      "updatedAt": "2026-08-19T23:44:23.620Z"
+      "id": "iec959457e830",
+      "ownerId": "__platform__",
+      "email": "x@y.com",
+      "company": "",
+      "message": "[website] hi",
+      "status": "new",
+      "source": "website",
+      "createdAt": "2026-08-19T23:48:56.728Z"
     }
-  ]
+  ],
+  "orders": []
 }
