@@ -14,7 +14,7 @@ China Selection 最大的资产是"**独立第三方策展眼光**"。一旦把�
 | | A · China Selection（策展站） | B · Supply Network（供应网络） |
 |---|---|---|
 | 定位 | 独立第三方策展 / 流量入口 | 你真实的出口实体集合，透明展示 |
-| 域名 | china-selection.com | 子路径 `/network` 或独立站 chinabrand.com |
+| 域名 | china-selection.com | 子路径 `/network` 或独立站 chinatimehonoredbrand.com |
 | 内容 | 可公开引用、注明来源的真实品牌（Roborock/Dreame…） | 你旗下各公司的真实产品 |
 | 关联声明 | 不出现自家公司 | **作为「Sponsored 赞助商」分区展示，明确标注付费 + 关联（affiliated sponsor）** |
 | 后端 | 无商家后台（编辑自己更新） | 每家有 vendor 后台，可发产品 |

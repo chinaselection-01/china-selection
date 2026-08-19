@@ -37,9 +37,9 @@
   - **厨房电器**：九阳 Joyoung / 北鼎 Buydeem / 小熊 Bear / 德尔玛 Deerma
   - **个护**：飞科 Flyco
 - **筛选逻辑**：优先选已在海外有认知 / 有 DTC / 走亚马逊的品牌 —— 这类"已被市场验证"的品牌最适合做策展信任锚，招商时也能拿它们当范本（"我们收录了 Roborock，你想上榜吗"）。
-- 老字号仍不进 China Select，流量继续导 chinabrand.com。
+- 老字号仍不进 China Select，流量继续导 chinatimehonoredbrand.com。
 
 ## 八、范围调整（2026-08-16 晚）
-- **老字号（heritage）层不进 China Select MVP 精选**；相关流量统一导流至现有站 **chinabrand.com**。
+- **老字号（heritage）层不进 China Select MVP 精选**；相关流量统一导流至现有站 **chinatimehonoredbrand.com**。
 - MVP 精选聚焦 **现代冠军 + 出海新锐**（共 8 个种子品牌），定位为**引流 / 获客页**（双 CTA：品牌方想上榜 + 采购商 / 分销商想找货源）。
-- **chinabrand.com** 为用户既有的老字号 / 更广中国品牌承载站；China Select 作为引流卫星页与其互补。
+- **chinatimehonoredbrand.com** 为用户既有的老字号 / 更广中国品牌承载站；China Select 作为引流卫星页与其互补。
