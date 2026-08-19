@@ -86,12 +86,13 @@ A 是策展，不是 marketplace；一旦 A 有"商家后台发产品"，就变�
    - 订单状态机：新 / 已付 / 已发货 / 完成 / 争议
    - 样品单自动出 Stripe 链接；大货单走线下标记 + Escrow 指引
 
-### 3.5 关键合规红线（务必先确认，否则白做）
+### 3.5 支付主体（已确认）
 - **Stripe 不接受中国大陆注册的公司作为收款商户**（2023 年起已不支持中国大陆新注册）。金华的实体若直接用 Stripe 收款会失败。
-- 可行路径二选一：
-  1. 各家公司用**香港 / 新加坡 / 美国 / 欧洲**实体注册 Stripe（每家独立账号，最贴合你"每家有自己的 Stripe"）；
-  2. 或平台用**境外主体**做 Stripe Connect，再分账给各 vendor（平台可控，但合规更重）。
-- 所以"每家有自己的 Stripe 账号"能否落地，**取决于各家公司有没有可注册 Stripe 的境外主体**。先确认这个，再定技术实现（独立 Stripe vs Stripe Connect）。
+- **已确认方案：平台用香港主体 Brand partner Co., Ltd 作 Stripe Connect 平台方，各 vendor 作 connected account（收款子账号）。**
+  - 香港主体可正常注册 Stripe，满足你"每家后台有自己的 Stripe 收款账号"的要求（每家一个 connected account，各自结算、各自看到自己的订单与流水）。
+  - 平台可控资金流：样品单平台统一收（Connect 直连收款 → 分账到对应 vendor connected account，平台抽佣），大货单走线下 + Escrow.com。
+  - 合规要点：平台需完成 Stripe Connect 的 KYC/合规审查；每个 connected account 也要完成自身 KYC（平台代为收集或引导 vendor 自行完成）。
+- 实现上：后台每家 vendor 配置一个 `stripeAccountId`（connected account），样品单创建 Stripe Checkout Session 时指定 `stripe_account`，款项直达该 vendor 子账号，平台佣金通过 `application_fee_amount` 抽取。
 
 ---
 

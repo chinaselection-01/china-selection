@@ -1,0 +1,68 @@
+# China Selection — Supply Network Vendor Backend (MVP)
+
+B 端「供应网络」的 vendor 后台：每家真实出口实体一个账号，可手动发布产品、从自有链接导入上架、管理询盘。零依赖 Node 服务（不装任何 npm 包），本地直接跑。
+
+> 与 A 端策展站（GitHub Pages 静态站 china-select-site）分离：**A 不放商家后台**，后台只属于 B。详见 `../china_select_architecture.md`。
+
+## 运行（本地）
+```bash
+cd china-select-backend
+node server.js          # 默认 http://localhost:3000 ，可用 PORT 环境变量覆盖
+```
+首次启动自动生成 `db.json`（含演示账号 `demo1` / `demo1234`）。
+
+## 功能
+- **认证**：注册 / 登录 / 登出，scrypt 密码哈希 + HttpOnly session cookie。每家 vendor 只能读写自己的数据。
+- **产品发布（手动）**：字段 = 品类 / 名称 / 型号 / 价格区间 / MOQ / 目标市场 / 认证 / 图片 / 描述。
+- **链接导入**：粘贴一个链接 → 服务端抓取 → 解析 title / og:description / og:image / og:title → 自动填字段 → 前端确认后发布（不直接发布，防误填）。
+- **AI 改写**：`aiRewrite()` 现为占位（无 LLM key 时返回原文）。接入大模型后替换该函数即可做描述改写 / 多语言翻译（目标市场含俄 / 阿语时尤其有用）。
+- **询盘管理**：接收询盘、状态标记 new / contacted / deal。
+- **订单管理（样品 / 大货双轨）**：每家 vendor 在自己的后台建订单。样品单 → 一键生成 **Stripe Checkout 链接**（款项直达该 vendor 的 Stripe Connected Account 子账号，平台抽佣）；大货单 → 填 Escrow 单号 + 对公转账标记。
+- **Stripe Connected Account**：每家 vendor 在 Settings 填自己的 `acct_xxx`（平台主体 Brand partner Co., Ltd 香港），样品收款直达自家子账号。
+
+## 支付模型（详见 `../china_select_architecture.md` §3.4 / §3.5）
+- **样品（首次合作小额）走 Stripe**：买家点 Checkout 信用卡付款，钱直达 vendor 的 connected account，平台按 `PLATFORM_FEE_RATE` 抽佣（默认 5%）。后端用 Stripe REST 直连 + `Stripe-Account` 头实现 Connect 分账，无需 stripe npm 包。
+- **大货（大额）走对公 + Escrow.com**：不在线收款，后台只记 Escrow 单号与状态，资金由持牌托管方处理。
+- Webhook `/api/stripe/webhook` 用内置 crypto 手验签名，付款成功后自动把订单置为 `paid`。
+
+## 环境变量（均可选；缺省降级为 mock 以便本地跑通）
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `STRIPE_SECRET_KEY` | 空 | 平台主体（Brand partner Co., Ltd）Stripe Secret Key。空 → Checkout/webhook 走 mock。 |
+| `STRIPE_WEBHOOK_SECRET` | 空 | Webhook 签名密钥。空 → 不验签（仅本地调试，生产必填）。 |
+| `PLATFORM_FEE_RATE` | 0.05 | 平台抽佣比例。 |
+| `PUBLIC_BASE` | http://localhost:3000 | Checkout 成功回跳 base URL。 |
+
+## API
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/api/register` | `{company,username,password}` |
+| POST | `/api/login` | 返回 session cookie |
+| POST | `/api/logout` | |
+| GET  | `/api/me` | 当前用户（含 `stripeAccountId`） |
+| PATCH | `/api/me` | `{stripeAccountId?, company?}` 保存 Stripe 子账号 |
+| GET/POST | `/api/products` | 列表 / 新增（需登录） |
+| DELETE | `/api/products/:id` | 删除自己的产品 |
+| POST | `/api/import` | `{url}` → 返回抓取草稿 |
+| GET/POST | `/api/inquiries` | 列表 / 新增（需登录） |
+| PATCH | `/api/inquiries/:id` | `{status}` |
+| GET/POST | `/api/orders` | 列表 / 新增（需登录） |
+| POST | `/api/orders/:id/checkout` | 样品单 → 生成 Stripe Checkout（需 vendor 已填 connected account） |
+| PATCH | `/api/orders/:id` | `{status?, escrowRef?, notes?}` |
+| DELETE | `/api/orders/:id` | 删除订单 |
+| POST | `/api/stripe/webhook` | Stripe Webhook（无需登录，验签后把订单置 paid） |
+
+页面：`/login`（登录+注册）、`/dashboard`（后台：产品 / 询盘 / 设置 / 订单）。
+
+## 红线（务必遵守，见架构文档 §3.2 / §六）
+1. **链接导入只接受「自有内容」或「已授权品牌方素材」**。无授权抓取亚马逊 / 竞品图文 = 版权 + 商标侵权，欧美尤严。导入前由导入者自行确认授权。
+2. **本服务不碰资金池**。样品收款经 Stripe Connect 直达各 vendor 的 connected account（平台仅抽佣，不截留）；大货资金由 Escrow.com 等持牌第三方托管（见 `../china_select_trust_flow.md`）。任何文案不得写 "funds held by China Selection / we guarantee payment"。
+
+## 部署（因为 GitHub Pages 只能托管静态，后台需另行部署）
+任选能跑 Node 的平台（Render / Railway / Fly.io / CloudStudio），把本目录推上去即可，无需 `npm install`：
+- Render：新建 Web Service → 连接仓库 → Build Command 留空 / `node server.js` → Start Command `node server.js` → 加环境变量 `PORT`（Render 会注入）。
+- 数据持久化：`db.json` 在临时文件系统会被重置——生产建议换成 SQLite（`better-sqlite3`）或外部数据库，或挂载持久卷。本 MVP 用 JSON 仅为快速验证。
+- 接上域名：可在 `china-selection.com` 下用子路径（如 `/network`）反代，或独立子域。
+
+## 后续迭代建议
+- 真实数据库替换 JSON；多图上传（现仅支持图片 URL）；AI 改写接入 LLM；询盘与 A 站表单打通（A 站现用 mailto，需换成提交到本后端）。
