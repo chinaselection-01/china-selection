@@ -62,7 +62,7 @@ _每发一期精选集（Issue）前，先过一遍这份清单。它是编辑�
 | 小家电（Issue 01 ✅） | 正式精选集 | 带货 + 轻量 B2B 撮合 |
 | 充电宝 / 移动电源 | 正式精选集 | 带货（Anker 类出海强）+ B2B |
 | 杯子 / 保温杯 | 正式精选集 | 带货 + B2B（契合既有渠道） |
-| 老字号国货 | **不进本精选集** | 导流 → chinatimehonoredbrand.com |
+| 老字号国货 | **不进本精选集** | 导流 → china-time-honored-brand.com |
 | 汽车（中国车评） | 引流内容钩子 + 可推荐 | 0公里二手车出口 B2B 贸易 |
 | 新能源车（新车品牌） | 只引流，**不入选、不招商** | 引流量到主站养粉 |
 
@@ -75,7 +75,7 @@ _每发一期精选集（Issue）前，先过一遍这份清单。它是编辑�
 - [ ] 每个入选条目都带「一句局限」
 - [ ] 无绝对化/虚假权威表述
 - [ ] 付费内容已标 #sponsored
-- [ ] 老字号流量已导 chinatimehonoredbrand.com
+- [ ] 老字号流量已导 china-time-honored-brand.com
 - [ ] 汽车内容未发 SELECTED 徽章
 - [ ] 联系邮箱 / 表单收件通道可用（勿用纯 mailto 丢线索）
 - [ ] "CHINA SELECTION / China Select" 商标已查（欧美优先）
