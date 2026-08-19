@@ -50,6 +50,10 @@
   .bcard .en{font-size:13px;color:var(--muted);margin-bottom:10px}
   .bcard .tagline{font-size:14px;color:var(--ink);margin-bottom:12px}
   .bcard .meta{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+  .crit{max-width:760px;margin:0 auto 28px;padding:16px 18px;background:var(--soft);border:1px solid var(--line);border-left:3px solid var(--red);border-radius:8px;font-size:13.5px;line-height:1.6;color:var(--ink)}
+  .crit b{color:var(--red)}
+  .bcard .lim{font-size:12.5px;color:#8a4b13;background:#fff5ec;border-left:3px solid #e08a2b;padding:8px 10px;border-radius:6px;margin-bottom:10px}
+  .bcard .lim span{font-weight:700}
   .sponsors{padding:56px 0;border-top:2px dashed var(--red);background:var(--soft)}
   .sponsors h2{font-size:28px;font-weight:800;text-align:center;margin-bottom:10px}
   .sponsor-note{max-width:780px;margin:0 auto 30px;font-size:13.5px;color:var(--muted);text-align:center;background:#fff;border:1px solid var(--line);border-left:4px solid var(--red);border-radius:10px;padding:14px 18px}
@@ -110,6 +114,7 @@
     <div class="wrap">
       <h2>Issue 01 — Small Appliances</h2>
       <div class="sub">Our first curated list &nbsp;·&nbsp; <a href="https://china-time-honored-brand.com" target="_blank" rel="noopener">Heritage / 老字号 brands → china-time-honored-brand.com</a></div>
+      <p class="crit"><b>How we picked this issue.</b> Every brand below was chosen on five criteria: <b>product strength</b> (design / function / value), <b>global readiness</b> (already selling in target markets), <b>editorial lens</b> (what represents smart Chinese manufacturing), <b>trust anchor</b> (already proven overseas), and <b>gap value</b> (what each adds to this list). This is an independent editorial selection — to be featured, apply for the next issue. Each pick notes one honest limitation.</p>
       <div class="tabs" id="tabs">
         <div class="tab active" data-f="all">All</div>
         <div class="tab" data-f="clean">Cleaning</div>
@@ -229,16 +234,16 @@
 
 <script>
   const brands = [
-    {n:"石头科技",en:"Roborock",layer:"clean",cat:"Robot vacuums",t:"Built a premium robot-vacuum brand that out-sells legacy names in the US & EU.",m:"Market: US / EU"},
-    {n:"追觅",en:"Dreame",layer:"clean",cat:"Cordless vacuums & robots",t:"High-speed motor tech powering vacuums that rival premium Western brands at half the price.",m:"Market: Global"},
-    {n:"科沃斯",en:"Ecovacs",layer:"clean",cat:"Robot vacuums & mops",t:"One of the earliest Chinese robot cleaners to go truly global.",m:"Market: Global"},
-    {n:"添可",en:"Tineco",layer:"clean",cat:"Wet-dry floor washers",t:"Turned floor washing from a chore into a whole new category overseas.",m:"Market: US / EU"},
-    {n:"云鲸",en:"Narwal",layer:"clean",cat:"Robot mops",t:"Self-cleaning robot mop that went viral with Western homeowners.",m:"Market: US / EU"},
-    {n:"九阳",en:"Joyoung",layer:"kitchen",cat:"Soy-milk makers & blenders",t:"Pioneer of the soy-milk maker, now a global small-kitchen name.",m:"Market: SE Asia / Overseas Chinese"},
-    {n:"北鼎",en:"Buydeem",layer:"kitchen",cat:"Premium kettles & coffee",t:"Design-led premium countertop appliances built for the global kitchen.",m:"Market: US / EU"},
-    {n:"小熊电器",en:"Bear",layer:"kitchen",cat:"Multi-category small kitchen",t:"Cute, affordable gadgets that won China's young households — now crossing borders.",m:"Market: SE Asia"},
-    {n:"德尔玛",en:"Deerma",layer:"kitchen",cat:"Humidifiers & home comfort",t:"Affordable home-comfort appliances engineered for cross-border scale.",m:"Market: Global"},
-    {n:"飞科",en:"Flyco",layer:"care",cat:"Grooming",t:"China's everyday grooming brand taking its value line international.",m:"Market: Global"}
+    {n:"石头科技",en:"Roborock",layer:"clean",cat:"Robot vacuums",t:"Built a premium robot-vacuum brand that out-sells legacy names in the US & EU.",lim:"Top-tier lines carry a premium price — for budget markets, push the Q series.",m:"Market: US / EU"},
+    {n:"追觅",en:"Dreame",layer:"clean",cat:"Cordless vacuums & robots",t:"High-speed motor tech powering vacuums that rival premium Western brands at half the price.",lim:"Brand recognition still trails Roborock; after-sales network is still expanding overseas.",m:"Market: Global"},
+    {n:"科沃斯",en:"Ecovacs",layer:"clean",cat:"Robot vacuums & mops",t:"One of the earliest Chinese robot cleaners to go truly global.",lim:"Entry-level models are inconsistent on build quality — lead with the X / T premium lines.",m:"Market: Global"},
+    {n:"添可",en:"Tineco",layer:"clean",cat:"Wet-dry floor washers",t:"Turned floor washing from a chore into a whole new category overseas.",lim:"Strong at wet-mopping, but the pure-vacuum range is thinner — category is narrow.",m:"Market: US / EU"},
+    {n:"云鲸",en:"Narwal",layer:"clean",cat:"Robot mops",t:"Self-cleaning robot mop that went viral with Western homeowners.",lim:"Few models and a higher price point — the SKU range is not yet deep.",m:"Market: US / EU"},
+    {n:"九阳",en:"Joyoung",layer:"kitchen",cat:"Soy-milk makers & blenders",t:"Pioneer of the soy-milk maker, now a global small-kitchen name.",lim:"Weak brand awareness in Western kitchens — traction comes from SE Asia & overseas Chinese.",m:"Market: SE Asia / Overseas Chinese"},
+    {n:"北鼎",en:"Buydeem",layer:"kitchen",cat:"Premium kettles & coffee",t:"Design-led premium countertop appliances built for the global kitchen.",lim:"Design premium means a higher price floor that limits mass-market reach.",m:"Market: US / EU"},
+    {n:"小熊电器",en:"Bear",layer:"kitchen",cat:"Multi-category small kitchen",t:"Cute, affordable gadgets that won China's young households — now crossing borders.",lim:"Brand strength and QC sit below the top tier — best for price-sensitive markets.",m:"Market: SE Asia"},
+    {n:"德尔玛",en:"Deerma",layer:"kitchen",cat:"Humidifiers & home comfort",t:"Affordable home-comfort appliances engineered for cross-border scale.",lim:"Loud in comfort categories, but quieter on core cleaning / kitchen lines.",m:"Market: Global"},
+    {n:"飞科",en:"Flyco",layer:"care",cat:"Grooming",t:"China's everyday grooming brand taking its value line international.",lim:"Strong on value, lighter on high-end grooming tech — positioned as entry-tier.",m:"Market: Global"}
   ];
   const layerLabel={clean:"Cleaning",kitchen:"Kitchen",care:"Personal care"};
   const grid=document.getElementById('bgrid');
@@ -247,7 +252,7 @@
     brands.filter(b=>f==='all'||b.layer===f).forEach(b=>{
       const d=document.createElement('div');
       d.className='bcard';
-      d.innerHTML=`<span class="layer">${layerLabel[b.layer]}</span><h3>${b.n}</h3><div class="en">${b.en} · ${b.cat}</div><div class="tagline">${b.t}</div><div class="meta">${b.m}</div>`;
+      d.innerHTML=`<span class="layer">${layerLabel[b.layer]}</span><h3>${b.n}</h3><div class="en">${b.en} · ${b.cat}</div><div class="tagline">${b.t}</div><div class="lim"><span>One honest limit:</span> ${b.lim}</div><div class="meta">${b.m}</div>`;
       grid.appendChild(d);
     });
   }
