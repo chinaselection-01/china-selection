@@ -35,7 +35,7 @@ function loadDB() {
   if (!fs.existsSync(DB_FILE)) {
     const seed = { users: [], sessions: {}, products: [], inquiries: [], orders: [] };
     // 演示账号：密码 demo1234
-    const u = mkUser('Demo Exporter 1', 'demo1', 'demo1234');
+    const u = mkUser('Demo Exporter 1', 'demo1', 'demo1234', 'vendor', '');
     seed.users.push(u);
     fs.writeFileSync(DB_FILE, JSON.stringify(seed, null, 2));
     return seed;
@@ -46,11 +46,33 @@ function saveDB() { fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2)); }
 let db = loadDB();
 
 // ---------- 密码 / 会话 ----------
-function mkUser(company, username, password) {
+function mkUser(company, username, password, role, email) {
+  role = role || 'vendor'; email = email || '';
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-  // stripeAccountId：该 vendor 在 Stripe 上的 connected account（子账号），由 vendor 在后台填写
-  return { id: 'u' + crypto.randomBytes(6).toString('hex'), company, username, salt, hash, stripeAccountId: '', createdAt: new Date().toISOString() };
+  // stripeAccountId：该 vendor 在 Stripe 上的 connected account（子账号）；buyerToken：买家免密登录令牌
+  return { id: 'u' + crypto.randomBytes(6).toString('hex'), company, username, salt, hash, role, email, stripeAccountId: '', buyerToken: '', tokenExpiry: 0, createdAt: new Date().toISOString() };
+}
+// 买家：guest 下单时用邮箱自动建/查账号，并关联订单（关系沉淀，不丢买家信息）
+function findOrCreateBuyer(email, name) {
+  email = String(email || '').trim().toLowerCase();
+  if (!email) return null;
+  let b = db.users.find(x => x.role === 'buyer' && (x.email === email || x.username === email));
+  if (!b) {
+    const tmp = crypto.randomBytes(14).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
+    b = mkUser(name || email.split('@')[0], email, tmp, 'buyer', email);
+    b.buyerToken = crypto.randomBytes(24).toString('hex');
+    b.tokenExpiry = Date.now() + 1000 * 60 * 60 * 24 * 30;
+    db.users.push(b); saveDB();
+  }
+  return b;
+}
+// 买家免密令牌登录（无邮件也能用；接邮件后改为邮件发送该令牌）
+function tokenBuyer(tok) {
+  if (!tok) return null;
+  const b = db.users.find(x => x.role === 'buyer' && x.buyerToken === tok);
+  if (!b || (b.tokenExpiry && Date.now() > b.tokenExpiry)) return null;
+  return b;
 }
 function verify(password, user) {
   const h = crypto.scryptSync(password, user.salt, 64).toString('hex');
@@ -179,8 +201,10 @@ async function stripeRequest(pathname, bodyObj, accountId) {
 }
 
 // 为「样品单」创建 Checkout Session：款项直达 vendor 子账号，平台抽佣
-async function createSampleCheckout(order, vendor) {
+async function createSampleCheckout(order, vendor, returnToken) {
   if (!vendor.stripeAccountId) throw new Error('Vendor has no Stripe connected account. Set it in Settings first.');
+  const base = process.env.PUBLIC_BASE || 'http://localhost:3000';
+  const tok = returnToken ? '&t=' + returnToken : '';
   if (!STRIPE_KEY) {
     // 本地无 key 时返回 mock 链接，便于跑通流程
     return { mock: true, checkoutUrl: 'https://checkout.stripe.com/mock/session_' + order.id, sessionId: 'mock_' + order.id };
@@ -193,8 +217,8 @@ async function createSampleCheckout(order, vendor) {
     'line_items[0][price_data][unit_amount]': Math.round(order.amount * 100),
     'line_items[0][quantity]': 1,
     'payment_intent_data[application_fee_amount]': fee,
-    success_url: (process.env.PUBLIC_BASE || 'http://localhost:3000') + '/dashboard?paid=' + order.id,
-    cancel_url: (process.env.PUBLIC_BASE || 'http://localhost:3000') + '/dashboard',
+    success_url: base + '/buyer-dashboard?paid=' + order.id + tok,
+    cancel_url: base + '/buyer-dashboard' + tok,
     client_reference_id: order.id,
     customer_email: order.buyerEmail || ''
   }, vendor.stripeAccountId);
@@ -457,6 +481,116 @@ function pageDashboard() {
   </script></body></html>`;
 }
 
+// 买家登录页（支持 ?token= 免密登录 / ?email= 预填）
+function pageBuyerLogin() {
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buyer sign in — China Selection</title>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f6f7f9;color:#14151a;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center}
+.box{background:#fff;border:1px solid #e7e8ec;border-radius:16px;padding:32px;width:360px;box-shadow:0 8px 30px rgba(20,21,26,.06)}
+.logo{font-weight:800;font-size:20px;margin-bottom:4px}.logo span{color:#C8102E}
+.sub{color:#5b6170;font-size:13px;margin-bottom:18px}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+input{padding:11px 12px;border:1px solid #e7e8ec;border-radius:9px;font-size:14px;width:100%;box-sizing:border-box}
+.btn{margin-top:18px;width:100%;padding:12px;border:none;border-radius:10px;background:#C8102E;color:#fff;font-weight:600;font-size:15px;cursor:pointer}
+.toggle{margin-top:14px;font-size:13px;color:#5b6170;text-align:center;cursor:pointer}
+.toggle a{color:#C8102E;font-weight:600}
+.ok{font-size:13px;color:#C8102E;margin-top:10px;min-height:16px}
+h2{font-size:20px;margin:0 0 2px}</style></head>
+<body><div class="box">
+<div class="logo">China<span>Selection</span></div>
+<div class="sub">Buyer account — track samples & bulk orders</div>
+<div id="form"><h2 id="title">Sign in</h2>
+<label>Email</label><input id="email" type="email" placeholder="you@company.com">
+<label>Password</label><input id="pw" type="password" placeholder="••••••••">
+<button class="btn" id="submit">Sign in</button>
+<div class="ok" id="ok"></div>
+<div class="toggle" id="toggle">New here? <a>Create an account</a></div></div>
+</div>
+<script>
+var mode='login';
+function params(){return new URLSearchParams(location.search);}
+var tok=params().get('token');
+if(tok){fetch('/api/buyer/token-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok})}).then(function(r){return r.json();}).then(function(j){if(j.ok)location.href='/buyer-dashboard';else{document.getElementById('ok').textContent='Login link invalid or expired.';}});}
+if(params().get('email'))document.getElementById('email').value=params().get('email');
+document.getElementById('toggle').onclick=function(){mode=mode==='login'?'register':'login';document.getElementById('title').textContent=mode==='login'?'Sign in':'Create account';document.getElementById('submit').textContent=mode==='login'?'Sign in':'Create account';document.getElementById('toggle').innerHTML=mode==='login'?'New here? <a>Create an account</a>':'Have an account? <a>Sign in</a>';};
+document.getElementById('submit').onclick=async function(){
+  var email=document.getElementById('email').value.trim(),pw=document.getElementById('pw').value;
+  if(!email||!pw){document.getElementById('ok').textContent='Email and password required.';return;}
+  var url=mode==='login'?'/api/login':'/api/buyer/register';
+  var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:email,email:email,password:pw})});
+  var j=await r.json();
+  if(!r.ok){document.getElementById('ok').textContent=j.error||'Failed.';return;}
+  location.href='/buyer-dashboard';
+};
+</script></body></html>`;
+}
+
+// 买家后台：订单（样品/大货）、付款、复购、发起大货 escrow
+function pageBuyerDashboard() {
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buyer dashboard — China Selection</title>
+<style>:root{--red:#C8102E;--ink:#14151a;--muted:#5b6170;--line:#e7e8ec;--soft:#f6f7f9}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--soft);color:var(--ink)}
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:#fff;border-bottom:1px solid var(--line)}
+.logo{font-weight:800;font-size:19px}.logo span{color:var(--red)}
+.wrap{max-width:980px;margin:0 auto;padding:24px}
+h2{font-size:24px;font-weight:800;margin:8px 0 4px}.lead{color:var(--muted);margin-bottom:20px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.tag{font-size:11px;font-weight:700;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:#eef1f6;color:var(--muted)}
+.tag.sample{background:#e7f6ec;color:#1c7a3e}.tag.bulk{background:#fff5ec;color:#b9690f}
+.st{font-size:12px;color:var(--muted);margin-top:6px}
+.btn{padding:9px 16px;border-radius:9px;font-weight:600;font-size:14px;cursor:pointer;border:1px solid transparent}
+.btn-primary{background:var(--red);color:#fff}.btn-ghost{background:#fff;border-color:var(--line);color:var(--ink)}
+.bulkf{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin-top:26px}
+.bulkf h3{font-size:18px;margin-bottom:12px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bulkf input,.bulkf textarea{padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:14px;width:100%;font-family:inherit}
+.bulkf label{font-size:13px;font-weight:600;margin:8px 0 4px;display:block}
+.foot{text-align:center;color:var(--muted);font-size:13px;padding:24px}
+@media(max-width:680px){.grid2{grid-template-columns:1fr}}</style></head>
+<body><nav><div class="logo">China<span>Selection</span></div><div><span id="who" style="color:var(--muted);font-size:14px;margin-right:14px"></span><button class="btn btn-ghost" id="logout">Log out</button></div></nav>
+<div class="wrap">
+<h2>My orders</h2><div class="lead">Track your sample purchases and bulk (escrow) requests.</div>
+<div id="orders"></div>
+<div class="bulkf"><h3>Request a bulk order (settles via Escrow.com)</h3>
+<div class="grid2"><div><label>Supplier (vendor username)</label><input id="b_vendor" placeholder="e.g. demo1"></div><div><label>Product</label><input id="b_ref" placeholder="e.g. Robot Vacuum X1"></div></div>
+<div class="grid2"><div><label>Quantity</label><input id="b_qty" type="number" value="500"></div><div><label>Estimated amount (USD)</label><input id="b_amt" type="number" placeholder="120000"></div></div>
+<label>Message to supplier</label><textarea id="b_msg" placeholder="Target market, specs, timeline…"></textarea>
+<button class="btn btn-primary" id="b_submit" style="margin-top:14px">Send bulk request</button><div class="ok" id="b_ok" style="font-size:13px;color:var(--red);margin-top:10px"></div>
+</div>
+<div class="foot">Samples are paid via Stripe to the supplier's own account. Bulk orders settle by bank transfer + Escrow.com — no funds are held by China Selection.</div>
+</div>
+<script>
+var $=function(id){return document.getElementById(id);};
+function esc(s){return (s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+async function load(){
+  var me=await (await fetch('/api/buyer/me')).json(); if(!me.id){location.href='/buyer-login';return;}
+  $('who').textContent=me.email;
+  var list=await (await fetch('/api/buyer/orders')).json();
+  if(!list.length){$('orders').innerHTML='<div class="card">No orders yet. Browse the <a href="/directory" style="color:var(--red)">Supply Directory</a> to order a sample.</div>';return;}
+  $('orders').innerHTML=list.map(function(o){
+    var pay=(o.type==='sample'&&o.status!=='paid'&&o.status!=='cancelled')?'<button class="btn btn-primary" data-pay="'+o.id+'">Pay via Stripe</button>':'';
+    var cancel=(o.status==='awaiting_payment')?'<button class="btn btn-ghost" data-cancel="'+o.id+'">Cancel</button>':'';
+    var payinfo=(o.type==='sample'&&o.status==='awaiting_payment')?' · <a href="'+esc(o.stripeCheckoutUrl||'')+'" style="color:var(--red)">Stripe link</a>':'';
+    return '<div class="card"><div class="row"><div><span class="tag '+o.type+'">'+o.type+'</span> <b>'+esc(o.productRef)+'</b><br><span class="st">Supplier: '+esc(o.vendorCompany||o.vendorUser)+' · Qty '+esc(o.qty)+' · '+(o.currency||'USD')+' '+esc(o.amount)+'</span></div><div>'+pay+cancel+'</div></div><div class="st">Status: '+esc(o.status)+payinfo+(o.escrowRef?(' · Escrow: '+esc(o.escrowRef)):'')+'</div></div>';
+  }).join('');
+}
+document.addEventListener('click',function(e){
+  var p=e.target.closest('[data-pay]'); if(p){pay(p.dataset.pay);return;}
+  var c=e.target.closest('[data-cancel]'); if(c){cancel(c.dataset.cancel);return;}
+});
+async function pay(id){var r=await fetch('/api/buyer/orders/'+id+'/checkout',{method:'POST'});var j=await r.json();if(!r.ok){alert(j.error||'Failed');return;}if(j.mock){alert('DEMO (no Stripe key): would open '+j.checkoutUrl);}else{location.href=j.checkoutUrl;}}
+async function cancel(id){var r=await fetch('/api/buyer/orders/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'cancelled'})});if(r.ok)load();}
+$('logout').onclick=async function(){await fetch('/api/logout',{method:'POST'});location.href='/buyer-login';};
+$('b_submit').onclick=async function(){
+  var b={vendor:$('b_vendor').value.trim(),productRef:$('b_ref').value.trim(),qty:$('b_qty').value,amount:$('b_amt').value,message:$('b_msg').value};
+  if(!b.vendor||!b.productRef){$('b_ok').textContent='Supplier and product required.';return;}
+  var r=await fetch('/api/buyer/bulk-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});var j=await r.json();
+  if(!r.ok){$('b_ok').textContent=j.error||'Failed.';return;}
+  $('b_ok').style.color='#1c7a3e';$('b_ok').textContent='✓ Bulk request sent to '+b.vendor+'. They will follow up on Escrow.';$('b_msg').value='';load();
+};
+load();
+</script></body></html>`;
+}
+
 // ---------- 路由 ----------
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, `http://${req.headers.host}`);
@@ -471,6 +605,13 @@ const server = http.createServer(async (req, res) => {
       const user = userFromReq(req);
       if (!user) { res.writeHead(302, { Location: '/login' }); return res.end(); }
       return res.end(pageDashboard());
+    }
+    if (method === 'GET' && path === '/buyer-login') return res.end(pageBuyerLogin());
+    if (method === 'GET' && path === '/buyer-dashboard') {
+      const t = new URL(req.url, 'http://' + req.headers.host).searchParams.get('t');
+      const u = userFromReq(req) || tokenBuyer(t);
+      if (!u || u.role !== 'buyer') { res.writeHead(302, { Location: '/buyer-login' }); return res.end(); }
+      return res.end(pageBuyerDashboard());
     }
 
     // API
@@ -546,6 +687,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       // 公开：买家免登录下样品单（款项直达对应 vendor 的 Stripe 子账号，平台抽佣）
+      // 同时按 buyerEmail 自动建/查买家账号并关联订单 → 买家信息沉淀，未来可登录看订单
       if (path === '/api/public/order-sample' && method === 'POST') {
         const b = await readBody(req);
         if (!b.vendor) return sendJSON(res, 400, { error: 'vendor required' });
@@ -554,14 +696,35 @@ const server = http.createServer(async (req, res) => {
         if (!amount || amount <= 0) return sendJSON(res, 400, { error: 'valid amount required' });
         const v = db.users.find(x => x.username === String(b.vendor).trim());
         if (!v) return sendJSON(res, 404, { error: 'vendor not found' });
+        const buyer = findOrCreateBuyer(b.buyerEmail, b.buyerName);
         let ref = b.productRef || 'Sample order';
         if (b.productId) { const pr = db.products.find(x => x.id === b.productId && x.ownerId === v.id); if (pr) ref = pr.name; }
         const o = addOrder(v.id, { type: 'sample', productRef: ref, buyerName: b.buyerName || '', buyerEmail: b.buyerEmail, qty: Number(b.qty) || 1, amount, currency: (b.currency || 'USD').toUpperCase() });
+        o.buyerId = buyer ? buyer.id : '';
         try {
-          const c = await createSampleCheckout(o, v);
+          const c = await createSampleCheckout(o, v, buyer ? buyer.buyerToken : '');
           o.stripeCheckoutUrl = c.checkoutUrl; o.stripeSessionId = c.sessionId; o.status = 'awaiting_payment'; o.updatedAt = new Date().toISOString(); saveDB();
-          return sendJSON(res, 200, { ok: true, orderId: o.id, checkoutUrl: c.checkoutUrl, mock: c.mock });
+          return sendJSON(res, 200, { ok: true, orderId: o.id, checkoutUrl: c.checkoutUrl, mock: c.mock, buyerToken: buyer ? buyer.buyerToken : '', buyerEmail: b.buyerEmail });
         } catch (e) { return sendJSON(res, 400, { error: e.message }); }
+      }
+
+      // 买家注册（公开）：用邮箱+密码建买家账号
+      if (path === '/api/buyer/register' && method === 'POST') {
+        const b = await readBody(req);
+        if (!b.email || !b.password) return sendJSON(res, 400, { error: 'email and password required' });
+        const email = String(b.email).trim().toLowerCase();
+        if (db.users.find(x => x.role === 'buyer' && (x.email === email || x.username === email))) return sendJSON(res, 409, { error: 'email already registered' });
+        const u = mkUser(b.name || email.split('@')[0], email, b.password, 'buyer', email);
+        db.users.push(u); saveDB(); setCookie(res, newSession(u.id));
+        return sendJSON(res, 200, { ok: true, id: u.id, email: u.email });
+      }
+      // 买家免密令牌登录（公开）：接邮件前用于把 guest 账号转成可登录会话
+      if (path === '/api/buyer/token-login' && method === 'POST') {
+        const b = await readBody(req);
+        const u = tokenBuyer(b.token);
+        if (!u) return sendJSON(res, 400, { error: 'invalid or expired token' });
+        setCookie(res, newSession(u.id));
+        return sendJSON(res, 200, { ok: true });
       }
 
       if (path === '/api/register' && method === 'POST') {
@@ -575,10 +738,10 @@ const server = http.createServer(async (req, res) => {
       }
       if (path === '/api/login' && method === 'POST') {
         const b = await readBody(req);
-        const u2 = db.users.find(x => x.username === b.username);
+        const u2 = db.users.find(x => x.username === b.username || (x.email && x.email === String(b.username || '').trim().toLowerCase()));
         if (!u2 || !verify(b.password || '', u2)) return sendJSON(res, 401, { error: 'invalid credentials' });
         setCookie(res, newSession(u2.id));
-        return sendJSON(res, 200, { ok: true, id: u2.id, company: u2.company });
+        return sendJSON(res, 200, { ok: true, id: u2.id, company: u2.company, role: u2.role });
       }
       if (path === '/api/logout' && method === 'POST') {
         const c = parseCookies(req).cs_session; if (c) delete db.sessions[c]; saveDB(); clearCookie(res);
@@ -597,8 +760,11 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res, 200, { ok: true, stripeAccountId: user.stripeAccountId });
       }
 
-      // 以下均需登录
+      // 以下均需登录；并按角色隔离 vendor / buyer 接口
       if (!user) return sendJSON(res, 401, { error: 'unauthorized' });
+      const isBuyerApi = path.startsWith('/api/buyer/');
+      if (isBuyerApi && user.role !== 'buyer') return sendJSON(res, 403, { error: 'buyer account required' });
+      if (!isBuyerApi && user.role !== 'vendor') return sendJSON(res, 403, { error: 'vendor account required' });
 
       if (path === '/api/products' && method === 'GET') return sendJSON(res, 200, ownedProducts(user.id));
       if (path === '/api/products' && method === 'POST') {
@@ -657,6 +823,44 @@ const server = http.createServer(async (req, res) => {
       if ((m = path.match(/^\/api\/orders\/(.+)$/)) && method === 'DELETE') {
         const o = findOrder(user.id, m[1]); if (!o) return sendJSON(res, 404, { error: 'not found' });
         db.orders = db.orders.filter(x => x.id !== m[1]); saveDB(); return sendJSON(res, 200, { ok: true });
+      }
+
+      // ---------- 买家接口（user.role === 'buyer'） ----------
+      if (path === '/api/buyer/me' && method === 'GET') {
+        return sendJSON(res, 200, { id: user.id, email: user.email, name: user.company, role: user.role });
+      }
+      if (path === '/api/buyer/orders' && method === 'GET') {
+        const list = db.orders.filter(o => o.buyerId === user.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+          .map(o => { const v = db.users.find(x => x.id === o.ownerId); return Object.assign({}, o, { vendorCompany: v ? v.company : '', vendorUser: v ? v.username : '' }); });
+        return sendJSON(res, 200, list);
+      }
+      if ((m = path.match(/^\/api\/buyer\/orders\/(.+)\/checkout$/)) && method === 'POST') {
+        const o = db.orders.find(x => x.id === m[1] && x.buyerId === user.id); if (!o) return sendJSON(res, 404, { error: 'not found' });
+        if (o.type !== 'sample') return sendJSON(res, 400, { error: 'only sample orders support Stripe checkout' });
+        if (o.status === 'paid') return sendJSON(res, 400, { error: 'already paid' });
+        const v = db.users.find(x => x.id === o.ownerId);
+        try {
+          const c = await createSampleCheckout(o, v, user.buyerToken);
+          o.stripeCheckoutUrl = c.checkoutUrl; o.stripeSessionId = c.sessionId; o.status = 'awaiting_payment'; o.updatedAt = new Date().toISOString(); saveDB();
+          return sendJSON(res, 200, c);
+        } catch (e) { return sendJSON(res, 400, { error: e.message }); }
+      }
+      // 买家发起大货单（escrow）：订单归属 vendor，buyerId 指向自己
+      if (path === '/api/buyer/bulk-request' && method === 'POST') {
+        const b = await readBody(req);
+        if (!b.vendor) return sendJSON(res, 400, { error: 'vendor required' });
+        const v = db.users.find(x => x.username === String(b.vendor).trim());
+        if (!v) return sendJSON(res, 404, { error: 'vendor not found' });
+        const o = addOrder(v.id, { type: 'bulk', productRef: b.productRef || 'Bulk order', buyerName: b.buyerName || user.company, buyerEmail: user.email, qty: Number(b.qty) || 1, amount: Number(b.amount) || 0, currency: (b.currency || 'USD').toUpperCase(), notes: b.message || '' });
+        o.buyerId = user.id; o.status = 'awaiting_payment';
+        saveDB();
+        return sendJSON(res, 200, o);
+      }
+      if ((m = path.match(/^\/api\/buyer\/orders\/(.+)$/)) && method === 'PATCH') {
+        const o = db.orders.find(x => x.id === m[1] && x.buyerId === user.id); if (!o) return sendJSON(res, 404, { error: 'not found' });
+        const b = await readBody(req);
+        if (b.status === 'cancelled' && o.status !== 'paid') { o.status = 'cancelled'; o.updatedAt = new Date().toISOString(); saveDB(); }
+        return sendJSON(res, 200, o);
       }
 
       return sendJSON(res, 404, { error: 'not found' });

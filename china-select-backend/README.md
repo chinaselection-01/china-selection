@@ -19,6 +19,7 @@ node server.js          # 默认 http://localhost:3000 ，可用 PORT 环境变�
 - **询盘管理**：接收询盘、状态标记 new / contacted / deal。
 - **订单管理（样品 / 大货双轨）**：每家 vendor 在自己的后台建订单。样品单 → 一键生成 **Stripe Checkout 链接**（款项直达该 vendor 的 Stripe Connected Account 子账号，平台抽佣）；大货单 → 填 Escrow 单号 + 对公转账标记。
 - **Stripe Connected Account**：每家 vendor 在 Settings 填自己的 `acct_xxx`（平台主体 Brand partner Co., Ltd 香港），样品收款直达自家子账号。
+- **买家账号（自动建 + 登录后台）**：买家在搜索页免登录下样品单时，后端按 `buyerEmail` 自动建/查一个 `role:'buyer'` 账号并关联订单（关系沉淀，不丢买家信息）。买家可用邮箱+密码注册/登录，或凭下单时返回的免密令牌（`buyerToken`）登录。买家后台 `/buyer-dashboard`：看自己的样品/大货订单、付款、复购、发起大货 escrow 请求。vendor / buyer 接口按角色隔离（403 互防）。
 
 ## 支付模型（详见 `../china_select_architecture.md` §3.4 / §3.5）
 - **样品（首次合作小额）走 Stripe**：买家点 Checkout 信用卡付款，钱直达 vendor 的 connected account，平台按 `PLATFORM_FEE_RATE` 抽佣（默认 5%）。后端用 Stripe REST 直连 + `Stripe-Account` 头实现 Connect 分账，无需 stripe npm 包。
@@ -53,9 +54,16 @@ node server.js          # 默认 http://localhost:3000 ，可用 PORT 环境变�
 | POST | `/api/stripe/webhook` | Stripe Webhook（无需登录，验签后把订单置 paid） |
 | GET  | `/api/public/products` | **买家公开搜索**：跨所有 vendor 的产品，支持 `?q=&category=&market=`。返回含 `vendor` / `vendorCompany` / `hasStripe`。无需登录。 |
 | POST | `/api/public/inquiry` | **买家免登录询盘**：`{vendor, name?, email, type?, message}`。按 vendor 路由进对应商家账号；未知 vendor 落入平台收件箱。 |
-| POST | `/api/public/order-sample` | **买家免登录下样品单**：`{vendor, productId?, buyerName?, buyerEmail, qty?, amount, currency?}`。创建样品单并生成 Stripe Checkout（款项直达该 vendor 子账号）。无 key 时返回 mock 链接。 |
+| POST | `/api/public/order-sample` | **买家免登录下样品单**：`{vendor, productId?, buyerName?, buyerEmail, qty?, amount, currency?}`。按邮箱自动建/查买家账号并关联订单，生成 Stripe Checkout（款项直达该 vendor 子账号）。返回 `buyerToken`（用于免密登录买家后台）。无 key 时返回 mock 链接。 |
+| POST | `/api/buyer/register` | 买家注册：`{email, password, name?}`（公开） |
+| POST | `/api/buyer/token-login` | 买家免密令牌登录：`{token}`（公开；接邮件前用于把 guest 账号转成会话） |
+| GET  | `/api/buyer/me` | 当前买家（需 buyer 登录） |
+| GET  | `/api/buyer/orders` | 买家的全部订单（含供应商公司名） |
+| POST | `/api/buyer/orders/:id/checkout` | 买家为样品单付款（Stripe Checkout，需 sample 且未付） |
+| POST | `/api/buyer/bulk-request` | 买家发起大货单（escrow）：`{vendor, productRef?, qty?, amount?, message?}`，订单归属该 vendor、buyerId 指向自己 |
+| PATCH| `/api/buyer/orders/:id` | 买家取消订单（仅未付时 `{status:'cancelled'}`） |
 
-页面：`/login`（登录+注册）、`/dashboard`（后台：产品 / 询盘 / 设置 / 订单）。
+页面：`/login`（vendor 登录+注册）、`/dashboard`（vendor 后台：产品 / 询盘 / 设置 / 订单）、`/buyer-login`（买家登录/注册，支持 `?token=` 免密登录）、`/buyer-dashboard`（买家后台：订单 / 付款 / 复购 / 大货 escrow）。
 买家端搜索页：`../directory.html`（静态页，挂在 A 站域名下；通过 `?backend=` 指向后端公网地址，或改文件内 `BACKEND` 常量）。
 
 ## 红线（务必遵守，见架构文档 §3.2 / §六）
@@ -81,4 +89,5 @@ node server.js          # 默认 http://localhost:3000 ，可用 PORT 环境变�
 
 ## 后续迭代建议
 - 真实数据库替换 JSON；多图上传（现仅支持图片 URL）；AI 改写接入 LLM。
-- A 站留资表单已对接本后端（免登录询盘），搜索页 `directory.html` 已支持买家搜索 / 询盘 / 样品下单。
+- 买家免密令牌目前靠前端回显/链接传递（无邮件）。接邮件服务（Resend / SendGrid 等）后，应在 guest 下单后自动发送含 `buyerToken` 的登录链接，而不是由前端暴露令牌。
+- A 站留资表单已对接本后端（免登录询盘），搜索页 `directory.html` 已支持买家搜索 / 询盘 / 样品下单，并可在下单后跳转买家后台。

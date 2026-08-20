@@ -1,54 +1,73 @@
 {
   "users": [
     {
-      "id": "u4b95396c0d2c",
+      "id": "ufe04d8870a65",
       "company": "Demo Exporter 1",
       "username": "demo1",
-      "salt": "09c0f3217b56a1b0c89a435dfb6b08b1",
-      "hash": "412f4ab62b9f8b2570d49255106c35492a2e057ec7cc7b5f00787eca8dbe0aeacae9c439d6717fb7783c1eb3076051516d713a0fb89e2a01cbf7aac510a00fdd",
+      "salt": "460fb3ec41b40d0f68eb4e554810996a",
+      "hash": "21fc06e16d7d7454af02e4470b21c3244ab90ba5ece69d3340b19b63ccb875d8278aed12a2c1652ed8e3911fb6d5447faf24734946694a422a4cbb06df21b65e",
+      "role": "vendor",
+      "email": "",
       "stripeAccountId": "acct_vendor_demo",
-      "createdAt": "2026-08-19T23:57:13.044Z"
+      "buyerToken": "",
+      "tokenExpiry": 0,
+      "createdAt": "2026-08-20T00:05:17.571Z"
+    },
+    {
+      "id": "u10bd0788900b",
+      "company": "EU Importer",
+      "username": "buyer@eu.com",
+      "salt": "a65a8b5577823f2221cca3272d355f1d",
+      "hash": "0cefa638fe3c76202c9a147f9d2100f79ce6ae64aaac25942ab481939870ec754558fdc9c3b8940f2b36ba0b9b34cb6470a2eb3637946238c1de36c2687a1ff0",
+      "role": "buyer",
+      "email": "buyer@eu.com",
+      "stripeAccountId": "",
+      "buyerToken": "694935f070ea3448c5427a36d8113fc90cf38a24f381f45f",
+      "tokenExpiry": 1789776336538,
+      "createdAt": "2026-08-20T00:05:36.538Z"
+    },
+    {
+      "id": "uc19028656f5b",
+      "company": "New Buyer",
+      "username": "new@buyer.com",
+      "salt": "cec3c26d3c1d4cf27d529445e1021df9",
+      "hash": "a2998db635a53b8adc8999b36ffa16ae3204fa94479408ca82ca2cbeb7b58c70c83d968ea5d0b4219873ee5537a35a447733288358aee652a912160465183e30",
+      "role": "buyer",
+      "email": "new@buyer.com",
+      "stripeAccountId": "",
+      "buyerToken": "",
+      "tokenExpiry": 0,
+      "createdAt": "2026-08-20T00:05:36.791Z"
     }
   ],
   "sessions": {
-    "000c18390a5eabf9c1b8ef1c3f0204d6290ed80b1c227d719776adb497e8be00": "u4b95396c0d2c"
+    "98d80e5866d5e2ad834f811b3f7f0c29582d2d8d142ee0a58b16f70aabba8e98": "ufe04d8870a65",
+    "f3ce3f0ad04469968ec171ac108e65c510ec2b3bf15c01829dec08b8a8205321": "u10bd0788900b",
+    "25dadc632429f39bf9c1201d93d5964026fc9ffe76fb2f41263b8e2e2cb1e3f5": "uc19028656f5b"
   },
   "products": [
     {
-      "id": "p49896b59b8c1",
-      "ownerId": "u4b95396c0d2c",
+      "id": "pe98fde3d9bce",
+      "ownerId": "ufe04d8870a65",
       "category": "Small appliances",
       "name": "Robot Vacuum X1",
-      "model": "X1",
+      "model": "",
       "priceRange": "$200-350",
       "moq": 50,
       "markets": "US,EU",
-      "certs": "CE,FCC",
-      "images": [
-        "https://x.com/a.jpg"
-      ],
-      "description": "Premium robot vacuum for homes.",
+      "certs": "",
+      "images": [],
+      "description": "Premium robot vacuum.",
       "source": "manual",
       "sourceUrl": "",
-      "createdAt": "2026-08-19T23:57:22.676Z"
+      "createdAt": "2026-08-20T00:05:36.493Z"
     }
   ],
-  "inquiries": [
-    {
-      "id": "i56ae91cd19e0",
-      "ownerId": "u4b95396c0d2c",
-      "email": "buyer@eu.com",
-      "company": "EU Importer",
-      "message": "[Buyer inquiry] Want X1",
-      "status": "new",
-      "source": "website",
-      "createdAt": "2026-08-19T23:57:22.757Z"
-    }
-  ],
+  "inquiries": [],
   "orders": [
     {
-      "id": "o65376b81a20c",
-      "ownerId": "u4b95396c0d2c",
+      "id": "o512c18e9d78f",
+      "ownerId": "ufe04d8870a65",
       "type": "sample",
       "productRef": "Sample order",
       "buyerName": "EU Importer",
@@ -58,12 +77,33 @@
       "currency": "USD",
       "amount": 299,
       "status": "awaiting_payment",
-      "stripeSessionId": "mock_o65376b81a20c",
-      "stripeCheckoutUrl": "https://checkout.stripe.com/mock/session_o65376b81a20c",
+      "stripeSessionId": "mock_o512c18e9d78f",
+      "stripeCheckoutUrl": "https://checkout.stripe.com/mock/session_o512c18e9d78f",
       "escrowRef": "",
       "notes": "",
-      "createdAt": "2026-08-19T23:57:22.773Z",
-      "updatedAt": "2026-08-19T23:57:22.774Z"
+      "createdAt": "2026-08-20T00:05:36.539Z",
+      "updatedAt": "2026-08-20T00:05:36.671Z",
+      "buyerId": "u10bd0788900b"
+    },
+    {
+      "id": "ocbd8a38a56e1",
+      "ownerId": "ufe04d8870a65",
+      "type": "bulk",
+      "productRef": "X1 Bulk 500",
+      "buyerName": "EU Importer",
+      "buyerEmail": "buyer@eu.com",
+      "buyerCompany": "",
+      "qty": 500,
+      "currency": "USD",
+      "amount": 120000,
+      "status": "awaiting_payment",
+      "stripeSessionId": "",
+      "stripeCheckoutUrl": "",
+      "escrowRef": "",
+      "notes": "EU distribution",
+      "createdAt": "2026-08-20T00:05:36.681Z",
+      "updatedAt": "2026-08-20T00:05:36.681Z",
+      "buyerId": "u10bd0788900b"
     }
   ]
 }

@@ -215,7 +215,11 @@
         });
         const j = await r.json();
         if (!r.ok) { $('mOk').textContent = j.error || 'Failed.'; $('mSubmit').disabled = false; return; }
-        if (j.mock) { alert('DEMO mode (no Stripe key): would redirect to Stripe Checkout.\nURL: ' + j.checkoutUrl); closeModal(); }
+        if (j.mock) {
+          const link = BACKEND + '/buyer-login?token=' + j.buyerToken;
+          alert('DEMO mode (no Stripe key): would redirect to Stripe Checkout.\n\nWe also created a buyer account for ' + j.buyerEmail + '. Open your dashboard:\n' + link);
+          window.open(link, '_blank'); closeModal();
+        }
         else { window.location.href = j.checkoutUrl; }
       } else {
         const r = await fetch(BACKEND + '/api/public/inquiry', {
