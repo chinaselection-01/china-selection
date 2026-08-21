@@ -94,6 +94,20 @@ A 是策展，不是 marketplace；一旦 A 有"商家后台发产品"，就变�
   - 合规要点：平台需完成 Stripe Connect 的 KYC/合规审查；每个 connected account 也要完成自身 KYC（平台代为收集或引导 vendor 自行完成）。
 - 实现上：后台每家 vendor 配置一个 `stripeAccountId`（connected account），样品单创建 Stripe Checkout Session 时指定 `stripe_account`，款项直达该 vendor 子账号，平台佣金通过 `application_fee_amount` 抽取。
 
+### 3.6 会员分层与定价（已确认）
+三层「免费增值 + 会员 + 效果付费」模型，主打便宜的 B2B 网站：
+
+| 层级 | 价格 | 内容 |
+|---|---|---|
+| **银标（免费）** | ¥0 | 10 个橱窗位、基础展示；产品上限硬编码 `SILVER_SHOWCASE_LIMIT=10`，超出提示升级金标 |
+| **金标（收费）** | **¥30,000 / 2 年** | 送平台内企业店铺页（后期可升级独立子域站）、产品不限量、橱窗解锁 |
+| **P4P（后期）** | 成交/曝光后另收 | 效果付费广告，按点击/曝光计费（`/api/public/track` 埋曝光/点击），叠加在会员之上 |
+
+- **入驻费定位**：作「平台服务费/会员费」（不退、不形成资金池），由香港主体 Brand partner Co., Ltd 收并开票；与「编辑精选」隔离（付费入驻 ≠ 上榜，Sponsored 区已打 affiliated 标）。
+- **履约押金**：默认不收；若收须走第三方存管/Escrow，**平台不归集**（详见 §六）。
+- **金标升级**：后端 `/api/upgrade-gold` 为 MVP 入口，生产须先校验 ¥3万 付款（`GOLD_FEE_YEARS=2`、`GOLD_FEE_CNY=30000`）。
+- **P4P 计费**：店铺页/搜索卡埋 `impression`/`click` 计数（`db.stats[username]`），后期据此向 vendor 计费；当前仅埋点，计费引擎待接。
+
 ---
 
 ## 四、A ↔ B 导流（唯一衔接点）

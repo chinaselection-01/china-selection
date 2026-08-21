@@ -51,7 +51,7 @@ function mkUser(company, username, password, role, email) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
   // stripeAccountId：该 vendor 在 Stripe 上的 connected account（子账号）；buyerToken：买家免密登录令牌
-  return { id: 'u' + crypto.randomBytes(6).toString('hex'), company, username, salt, hash, role, email, stripeAccountId: '', buyerToken: '', tokenExpiry: 0, createdAt: new Date().toISOString() };
+  return { id: 'u' + crypto.randomBytes(6).toString('hex'), company, username, salt, hash, role, email, stripeAccountId: '', buyerToken: '', tokenExpiry: 0, tier: 'silver', createdAt: new Date().toISOString() };
 }
 // 买家：guest 下单时用邮箱自动建/查账号，并关联订单（关系沉淀，不丢买家信息）
 function findOrCreateBuyer(email, name) {
@@ -186,6 +186,11 @@ async function aiRewrite(text) {
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || '';
 const STRIPE_WHSEC = process.env.STRIPE_WEBHOOK_SECRET || '';
 const PLATFORM_FEE_RATE = Number(process.env.PLATFORM_FEE_RATE || 0.05); // 平台抽佣比例，默认 5%
+const SILVER_SHOWCASE_LIMIT = Number(process.env.SILVER_SHOWCASE_LIMIT || 10); // 银标橱窗上限（产品数）
+// 会员分层（见 china_select_architecture.md §会员与定价）：
+//   silver（免费）：橱窗上限 10；gold（¥3万/2年）：产品不限量 + 平台店铺页 + 后期独立站升级
+const GOLD_FEE_YEARS = 2;
+const GOLD_FEE_CNY = 30000;
 
 // 向 Stripe REST 发请求；accountId 存在时走 Connect 子账号
 async function stripeRequest(pathname, bodyObj, accountId) {
@@ -271,7 +276,20 @@ function addOrder(uid, data) {
 function ownedProducts(uid) { return db.products.filter(p => p.ownerId === uid); }
 function findProduct(uid, id) { return db.products.find(p => p.id === id && p.ownerId === uid); }
 
+db.stats = db.stats || {}; // 每 vendor(username) 的 P4P 曝光/点击计数：{impressions, clicks}
+function bumpStat(username, event) {
+  if (!username) return;
+  const s = db.stats[username] || { impressions: 0, clicks: 0 };
+  if (event === 'impression') s.impressions++;
+  else if (event === 'click') s.clicks++;
+  db.stats[username] = s; saveDB();
+}
+
 function addProduct(uid, data) {
+  const owner = db.users.find(x => x.id === uid);
+  if (owner && owner.tier === 'silver' && ownedProducts(uid).length >= SILVER_SHOWCASE_LIMIT) {
+    throw new Error('Silver tier is limited to ' + SILVER_SHOWCASE_LIMIT + ' showcases. Upgrade to Gold for unlimited products.');
+  }
   const p = {
     id: 'p' + crypto.randomBytes(6).toString('hex'),
     ownerId: uid,
@@ -351,6 +369,10 @@ function pageDashboard() {
   <div class="wrap">
     <div class="card"><h2>Welcome, <span id="company" class="red"></span></h2>
       <div class="sub">This is your vendor console. List products, import from your own site, and manage inquiries. Trades settle via licensed third-party escrow — not through this site.</div>
+      <div class="pill" id="tier" style="margin-top:10px"></div>
+      <div class="sub" id="stats" style="margin-top:6px"></div>
+      <div style="margin-top:10px"><a class="btn-ghost" id="storelink" target="_blank" rel="noopener">View my storefront →</a></div>
+      <button class="btn-ghost" id="upgrade" style="margin-top:10px">Upgrade to Gold (¥30,000 / 2yr)</button>
     </div>
 
     <div class="card">
@@ -423,6 +445,11 @@ function pageDashboard() {
     const u=await me(); if(!u){location.href='/login';return;}
     $('company').textContent=u.company;
     $('stripe_acct').value=u.stripeAccountId||'';
+    const isGold=u.tier==='gold';
+    $('tier').textContent=(isGold?'Gold':'Silver')+' · '+(isGold?'unlimited products':'10 showcases max');
+    $('stats').textContent='Impressions: '+(u.stats.impressions||0)+' · Clicks: '+(u.stats.clicks||0);
+    $('upgrade').style.display=isGold?'none':'inline-block';
+    $('storelink').href='/store?u='+encodeURIComponent(u.username);
     const pr=await (await fetch('/api/products')).json();
     $('pcount').textContent=pr.length;
     $('plist').innerHTML=pr.map(p=>'<div class="prod" data-id="'+p.id+'"><div><b>'+esc(p.name)+'</b> <span class="meta">'+esc(p.category||'')+'</span><br><span class="meta">'+esc(p.model||'')+' · '+esc(p.priceRange||'')+' · MOQ '+p.moq+' · '+esc(p.markets||'')+'</span><br><span class="meta">'+esc((p.description||'').slice(0,90))+'</span></div><div><button class="ghost delbtn">Delete</button></div></div>').join('')||'<div class="sub">No products yet.</div>';
@@ -477,6 +504,7 @@ function pageDashboard() {
     if(!b.productRef){alert('Product required');return;}const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});if(r.ok){$('o_product').value='';$('o_notes').value='';loadOrders();}};
   $('saveStripe').onclick=async()=>{const r=await fetch('/api/me',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({stripeAccountId:$('stripe_acct').value})});if(r.ok){alert('Stripe account saved.');}};
   $('logout').onclick=async()=>{await fetch('/api/logout',{method:'POST'});location.href='/login';};
+  $('upgrade').onclick=async()=>{ if(!confirm('Upgrade to Gold for ¥30,000 / 2yr? (payment integration pending)'))return; const r=await fetch('/api/upgrade-gold',{method:'POST'}); if(r.ok)load(); };
   load();
   </script></body></html>`;
 }
@@ -591,6 +619,61 @@ load();
 </script></body></html>`;
 }
 
+function pageStorefront() {
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Storefront — China Selection</title>
+<style>:root{--red:#C8102E;--ink:#14151a;--muted:#5b6170;--line:#e7e8ec;--soft:#f6f7f9}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--soft);color:var(--ink)}
+header{background:#14151a;color:#fff;padding:24px}header .wrap{max-width:1040px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+.logo{font-weight:800;font-size:20px}.logo span{color:var(--red)}.tier{font-size:12px;font-weight:700;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:#fff2;color:#fff}
+.wrap{max-width:1040px;margin:0 auto;padding: 24px}
+.banner{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px}
+.banner h1{font-size:26px;margin-bottom:6px}.banner p{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.pc{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.pc .ph{height:150px;background:#eee;background-size:cover;background-position:center}
+.pc .pb{padding:14px}.pc h3{font-size:16px;margin-bottom:4px}.pc .meta{font-size:13px;color:var(--muted);margin:4px 0}
+.pc .desc{font-size:13px;color:#333;margin:6px 0 12px;line-height:1.4}
+.pc button{width:100%;padding:10px;border:0;border-radius:9px;font-weight:700;cursor:pointer;margin-top:6px}
+.btn-inq{background:#14151a;color:#fff}.btn-smo{background:var(--red);color:#fff}
+.note{text-align:center;color:var(--muted);font-size:13px;padding:20px}
+.foot{text-align:center;color:var(--muted);font-size:12px;padding:24px}
+</style></head>
+<body><header><div class="wrap"><div class="logo">China<span>Selection</span> · Storefront</div><span class="tier" id="tier"></span></div></header>
+<div class="wrap">
+<div class="banner"><h1 id="company"></h1><p id="intro">Official storefront on the China Selection supply network.</p></div>
+<div id="grid" class="grid"></div>
+<div class="foot">Verified supplier badge · Payments: sample via Stripe, bulk via Escrow.com. China Selection does not hold funds.</div>
+</div>
+<script>
+var $=function(id){return document.getElementById(id);};
+function esc(s){return (s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function qp(n){return new URLSearchParams(location.search).get(n);}
+async function track(e){var u=qp('u');if(!u)return;await fetch('/api/public/track?u='+encodeURIComponent(u)+'&e='+e,{cache:'no-store'});}
+async function load(){
+  var u=qp('u'); if(!u){$('company').textContent='Vendor not specified';return;}
+  var r=await fetch('/api/public/store?u='+encodeURIComponent(u),{cache:'no-store'});
+  if(!r.ok){$('company').textContent='Vendor not found';return;}
+  var d=await r.json();
+  $('company').textContent=d.company;
+  $('tier').textContent=d.tier==='gold'?'Gold member':'Silver member';
+  track('impression');
+  if(!d.products.length){$('grid').innerHTML='<div class="note">No products listed yet.</div>';return;}
+  $('grid').innerHTML=d.products.map(function(p){
+    var img=(p.images&&p.images[0])?'<div class="ph" style="background-image:url('+esc(p.images[0])+')"></div>':'<div class="ph"></div>';
+    var pay=d.hasStripe?'<button class="btn-smo" data-v="'+esc(u)+'" data-p="'+esc(p.id)+'">Order sample</button>':'';
+    return '<div class="pc">'+img+'<div class="pb"><h3>'+esc(p.name)+'</h3><div class="meta">'+(esc(p.category)||'')+' · '+(esc(p.priceRange)||'')+' · MOQ '+(p.moq||'-')+'</div><div class="desc">'+(esc(p.description)||'')+'</div><button class="btn-inq" data-v="'+esc(u)+'">Inquire</button>'+pay+'</div></div>';
+  }).join('');
+}
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-v]'); if(!b)return; track('click');
+  if(b.dataset.p){var amt=prompt('Sample price (USD)?','299'); if(amt===null)return; var j={vendor:b.dataset.v,productId:b.dataset.p,buyerName:'',buyerEmail:prompt('Your email?',''),qty:1,amount:amt,currency:'USD'};
+    if(!j.buyerEmail){return;} fetch('/api/public/order-sample',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)}).then(function(r){return r.json();}).then(function(j2){if(j2.mock){alert('DEMO (no Stripe key): would open '+j2.checkoutUrl);}else if(j2.checkoutUrl){location.href=j2.checkoutUrl;}});}
+  else{var email=prompt('Your email for inquiry?',''); if(!email)return; fetch('/api/public/inquiry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vendor:b.dataset.v,email:email,message:'Interested in your products'})}).then(function(){alert('Inquiry sent to '+b.dataset.v+'.');});}
+});
+load();
+</script></body></html>`;
+}
+
 // ---------- 路由 ----------
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, `http://${req.headers.host}`);
@@ -607,6 +690,7 @@ const server = http.createServer(async (req, res) => {
       return res.end(pageDashboard());
     }
     if (method === 'GET' && path === '/buyer-login') return res.end(pageBuyerLogin());
+    if (method === 'GET' && path === '/store') return res.end(pageStorefront());
     if (method === 'GET' && path === '/buyer-dashboard') {
       const t = new URL(req.url, 'http://' + req.headers.host).searchParams.get('t');
       const u = userFromReq(req) || tokenBuyer(t);
@@ -686,6 +770,25 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res, 200, { count: list.length, products: list });
       }
 
+      // 公开：P4P 曝光/点击埋点（后期按点击/曝光计费）。e=impression|click，u=vendor 用户名
+      if (path === '/api/public/track' && method === 'GET') {
+        const u = new URL(req.url, 'http://localhost');
+        bumpStat(u.searchParams.get('u'), u.searchParams.get('e'));
+        return sendJSON(res, 200, { ok: true });
+      }
+      // 公开：店铺页数据（金标/银标均可；含产品列表 + 计费标识）
+      if (path === '/api/public/store' && method === 'GET') {
+        const u = new URL(req.url, 'http://localhost');
+        const v = db.users.find(x => x.username === String(u.searchParams.get('u') || '').trim());
+        if (!v) return sendJSON(res, 404, { error: 'vendor not found' });
+        const prods = db.products.filter(p => p.ownerId === v.id);
+        return sendJSON(res, 200, {
+          username: v.username, company: v.company, tier: v.tier || 'silver',
+          products: prods, hasStripe: !!v.stripeAccountId,
+          stats: db.stats[v.username] || { impressions: 0, clicks: 0 }
+        });
+      }
+
       // 公开：买家免登录下样品单（款项直达对应 vendor 的 Stripe 子账号，平台抽佣）
       // 同时按 buyerEmail 自动建/查买家账号并关联订单 → 买家信息沉淀，未来可登录看订单
       if (path === '/api/public/order-sample' && method === 'POST') {
@@ -749,7 +852,8 @@ const server = http.createServer(async (req, res) => {
       }
       if (path === '/api/me' && method === 'GET') {
         if (!user) return sendJSON(res, 401, { error: 'unauthorized' });
-        return sendJSON(res, 200, { id: user.id, company: user.company, username: user.username, stripeAccountId: user.stripeAccountId || '' });
+        const s = db.stats[user.username] || { impressions: 0, clicks: 0 };
+        return sendJSON(res, 200, { id: user.id, company: user.company, username: user.username, stripeAccountId: user.stripeAccountId || '', tier: user.tier || 'silver', stats: s, showcaseLimit: user.tier === 'gold' ? null : SILVER_SHOWCASE_LIMIT });
       }
       if (path === '/api/me' && method === 'PATCH') {
         if (!user) return sendJSON(res, 401, { error: 'unauthorized' });
@@ -769,8 +873,16 @@ const server = http.createServer(async (req, res) => {
       if (path === '/api/products' && method === 'GET') return sendJSON(res, 200, ownedProducts(user.id));
       if (path === '/api/products' && method === 'POST') {
         const b = await readBody(req);
-        if (!b.name) return sendJSON(res, 400, { error: 'name required' });
-        return sendJSON(res, 200, addProduct(user.id, b));
+        if (!b.name) return sendJSON(res, 400,  { error: 'name required' });
+        try { return sendJSON(res, 200, addProduct(user.id, b)); }
+        catch (e) { return sendJSON(res, 403, { error: e.message }); }
+      }
+      // 升级金标：实际由支付（¥3万/2年）触发；此处为 MVP 入口，生产需先校验付款
+      if (path === '/api/upgrade-gold' && method === 'POST') {
+        user.tier = 'gold'; user.goldSince = new Date().toISOString();
+        user.goldExpires = new Date(Date.now() + GOLD_FEE_YEARS * 365 * 864e5).toISOString();
+        saveDB();
+        return sendJSON(res, 200, { ok: true, tier: 'gold', expires: user.goldExpires });
       }
       let m;
       if ((m = path.match(/^\/api\/products\/(.+)$/)) && method === 'DELETE') {

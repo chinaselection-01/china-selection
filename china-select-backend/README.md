@@ -62,8 +62,17 @@ node server.js          # 默认 http://localhost:3000 ，可用 PORT 环境变�
 | POST | `/api/buyer/orders/:id/checkout` | 买家为样品单付款（Stripe Checkout，需 sample 且未付） |
 | POST | `/api/buyer/bulk-request` | 买家发起大货单（escrow）：`{vendor, productRef?, qty?, amount?, message?}`，订单归属该 vendor、buyerId 指向自己 |
 | PATCH| `/api/buyer/orders/:id` | 买家取消订单（仅未付时 `{status:'cancelled'}`） |
+| GET  | `/store` | **金标/银标店铺页**（GET 页面，形如 `/store?u=username`），展示商家产品 + 计费标识；加载时埋曝光 |
+| GET  | `/api/public/store` | 店铺页数据：`?u=username` → `{company, tier, products, hasStripe, stats}`（公开） |
+| GET  | `/api/public/track` | P4P 埋点：`?u=username&e=impression|click`，按点击/曝光计费（后期） |
+| POST | `/api/upgrade-gold` | vendor 升级金标：`{ }` → 设 `tier=gold` + 到期日（生产须先校验 ¥3万 付款） |
 
-页面：`/login`（vendor 登录+注册）、`/dashboard`（vendor 后台：产品 / 询盘 / 设置 / 订单）、`/buyer-login`（买家登录/注册，支持 `?token=` 免密登录）、`/buyer-dashboard`（买家后台：订单 / 付款 / 复购 / 大货 escrow）。
+### 会员分层（见 china_select_architecture.md §3.6）
+- **银标（免费）**：橱窗上限 `SILVER_SHOWCASE_LIMIT=10`，超出 `/api/products` POST 返回 403。
+- **金标（¥30,000/2年）**：产品不限量 + 平台店铺页 + 后期独立站升级。
+- **P4P（后期）**：按点击/曝光计费，`db.stats[username]` 累计，计费引擎待接。
+
+页面：`/login`（vendor 登录+注册）、`/dashboard`（vendor 后台：产品 / 询盘 / 设置 / 订单 / 会员 / 店铺链接）、`/buyer-login`（买家登录/注册，支持 `?token=` 免密登录）、`/buyer-dashboard`（买家后台：订单 / 付款 / 复购 / 大货 escrow）、`/store`（商家店铺页）。
 买家端搜索页：`../directory.html`（静态页，挂在 A 站域名下；通过 `?backend=` 指向后端公网地址，或改文件内 `BACKEND` 常量）。
 
 ## 红线（务必遵守，见架构文档 §3.2 / §六）

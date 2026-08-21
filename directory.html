@@ -36,6 +36,9 @@
   .pcard .desc{font-size:14px;color:var(--ink);margin-bottom:10px;flex:1}
   .pcard .meta{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin-bottom:12px}
   .pcard .acts{display:flex;gap:10px}
+  .pcard .store{margin-top:10px;font-size:13px}
+  .pcard .store a{color:var(--red);font-weight:600;text-decoration:none}
+  .pcard .store a:hover{text-decoration:underline}
   .btn{padding:10px 16px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent}
   .btn-primary{background:var(--red);color:#fff}
   .btn-ghost{background:#fff;border-color:var(--line);color:var(--ink)}
@@ -154,6 +157,7 @@
         + '<div class="desc">'+esc(p.description||'')+'</div>'
         + '<div class="meta">'+(p.priceRange?('Price: '+esc(p.priceRange)+' · '):'')+'MOQ: '+esc(p.moq||'-')+(p.markets?(' · Markets: '+esc(p.markets)):'')+(p.certs?(' · '+esc(p.certs)):'')+'</div>'
         + '<div class="acts"><button class="btn btn-ghost" data-act="inquire" data-id="'+p.id+'">Inquire</button>'+sampleBtn+'</div>'
+        + '<div class="store"><a href="'+BACKEND+'/store?u='+encodeURIComponent(p.vendor)+'" target="_blank" rel="noopener">View '+esc(p.vendorCompany||p.vendor)+' store →</a></div>'
         + '</div>';
     }).join('');
   }
